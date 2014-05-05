@@ -7,3 +7,10 @@ module = {
   i386_pc = miray/commands/boothelper_bios.c;
   efi = miray/commands/boothelper_efi.c;
 };
+
+
+module = {
+  name = lzmaio;
+  common = miray/io/lzmaio.c;
+  common = lib/LzmaDec.c;
+};
