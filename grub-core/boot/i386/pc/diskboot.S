@@ -51,9 +51,11 @@ _start:
 	pushw	%dx
 
 	/* print a notification message on the screen */
+	/* Miray Disable
 	pushw	%si
 	MSG(notification_string)
 	popw	%si
+	*/
 
 	/* this sets up for the first run through "bootloop" */
 	movw	$LOCAL(firstlist), %di
@@ -320,7 +322,8 @@ LOCAL(general_error):
 /* go here when you need to stop the machine hard after an error condition */
 LOCAL(stop):	jmp	LOCAL(stop)
 
-notification_string:	.asciz "loading"
+/* notification_string:	.asciz "loading" */
+notifcitaion_string:	.asciz ""
 
 notification_step:	.asciz "."
 notification_done:	.asciz "\r\n"

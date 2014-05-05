@@ -250,7 +250,7 @@ real_start:
 	pushw	%dx
 
 	/* print a notification message on the screen */
-	MSG(notification_string)
+	/* MSG(notification_string) */
 
 	/* set %si to the disk address packet */
 	movw	$disk_address_packet, %si
@@ -478,7 +478,8 @@ LOCAL(general_error):
 LOCAL(stop):
 	jmp	LOCAL(stop)
 
-notification_string:	.asciz "GRUB "
+/* notification_string:	.asciz "GRUB " */
+notification_string:    .asciz ""
 geometry_error_string:	.asciz "Geom"
 hd_probe_error_string:	.asciz "Hard Disk"
 read_error_string:	.asciz "Read"
