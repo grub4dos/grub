@@ -134,7 +134,8 @@ $(top_srcdir)/Makefile.util.am: $(top_srcdir)/gentpl.py $(top_srcdir)/Makefile.u
 	mv $@.new $@
 
 .PRECIOUS: $(top_srcdir)/grub-core/Makefile.core.am
-$(top_srcdir)/grub-core/Makefile.core.am: $(top_srcdir)/gentpl.py $(top_srcdir)/grub-core/Makefile.core.def $(top_srcdir)/grub-core/Makefile.gcry.def
+$(top_srcdir)/grub-core/Makefile.core.am: $(top_srcdir)/gentpl.py $(top_srcdir)/grub-core/Makefile.core.def $(top_srcdir)/grub-core/Makefile.gcry.def $(top_srcdir)/grub-core/Makefile.miray.def
+
 	if [ "x$$GRUB_CONTRIB" != x ]; then echo "You need to run ./bootstrap manually." >&2; exit 1; fi
 	$(PYTHON) $^ > $@.new || (rm -f $@.new; exit 1)
 	mv $@.new $@
