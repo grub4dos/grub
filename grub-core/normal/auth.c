@@ -24,6 +24,7 @@
 #include <grub/normal.h>
 #include <grub/time.h>
 #include <grub/i18n.h>
+#include <grub/miray_debug.h>
 
 struct grub_auth_user
 {
@@ -210,6 +211,10 @@ grub_auth_check_authentication (const char *userlist)
   struct grub_auth_user *user;
 
   grub_memset (login, 0, sizeof (login));
+
+  /* Completely lock down all restricted targets */
+  if (!miray_debugmode())
+    return GRUB_ACCESS_DENIED;
 
   if (is_authenticated (userlist))
     {
