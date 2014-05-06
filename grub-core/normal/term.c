@@ -176,6 +176,32 @@ map_code (grub_uint32_t in, struct grub_term_output *term)
 	  return GRUB_CP437_CORNER_LL;
 	case GRUB_UNICODE_CORNER_LR:
 	  return GRUB_CP437_CORNER_LR;
+	case 0xc4: // 'Ä'
+	  return 0x8e;
+	case 0xd6: // 'Ö'
+	  return 0x99;
+	case 0xdc: // 'Ü'
+	  return 0x9a;
+	case 0xe4: // ä
+	  return 0x84;
+	case 0xf6: // ö
+	  return 0x94;
+	case 0xfc: // ü
+	  return 0x81;
+	case GRUB_UNICODE_LIGHT_HLINE:
+	  return GRUB_CP437_HLINE;
+	case 0x2580:    /* half upper block */
+	  return 0xdf;
+	case 0x2584:    /* half lower block */
+	  return 0xdc;
+	case 0x2588:    /* full block */
+	  return 0xdb;
+	case 0x2591:
+	  return 0xb0;     /* light shade */
+	case 0x2592:
+	  return 0xb1;     /* medium shade */
+	case 0x2593:
+	  return 0xb2;     /* dark shade */
 	}
       return '?';
     case GRUB_TERM_CODE_TYPE_ASCII:
