@@ -1,5 +1,47 @@
 AutoGen definitions Makefile.tpl;
 
+image = {
+  name = boot;
+  i386_pc = boot/i386/pc/boot_rel.S;
+  i386_qemu = boot/i386/qemu/boot.S;
+  sparc64_ieee1275 = boot/sparc64/ieee1275/boot.S;
+
+  i386_pc_ldflags = '$(TARGET_IMG_LDFLAGS)';
+  i386_pc_ldflags = '$(TARGET_IMG_BASE_LDOPT),0x7C00';
+
+  i386_qemu_ldflags = '$(TARGET_IMG_LDFLAGS)';
+  i386_qemu_ldflags = '$(TARGET_IMG_BASE_LDOPT),$(GRUB_BOOT_MACHINE_LINK_ADDR)';
+  i386_qemu_ccasflags = '-DGRUB_BOOT_MACHINE_LINK_ADDR=$(GRUB_BOOT_MACHINE_LINK_ADDR)';
+
+  sparc64_ieee1275_objcopyflags = '-O a.out-sunos-big';
+  sparc64_ieee1275_ldflags = ' -Wl,-Ttext=0x4000';
+
+  objcopyflags = '-O binary';
+  enable = i386_pc;
+  enable = i386_qemu;
+  enable = sparc64_ieee1275;
+};
+
+
+
+image = {
+  name = diskboot;
+  i386_pc = boot/i386/pc/diskboot_rel.S;
+
+  i386_pc_ldflags = '$(TARGET_IMG_LDFLAGS)';
+  i386_pc_ldflags = '$(TARGET_IMG_BASE_LDOPT),0x8000';
+
+  sparc64_ieee1275 = boot/sparc64/ieee1275/diskboot.S;
+  sparc64_ieee1275_ldflags = '-Wl,-Ttext=0x4200';
+
+  objcopyflags = '-O binary';
+
+  enable = i386_pc;
+  enable = sparc64_ieee1275;
+};
+
+
+
 module = {
   name = boothelper;
   common = miray/commands/boothelper.c;

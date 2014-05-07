@@ -30,6 +30,9 @@
 /* The offset of the end of BPB (BIOS Parameter Block).  */
 #define GRUB_BOOT_MACHINE_BPB_END	0x5a
 
+/* The hidden blocks Value in the BPB */
+#define GRUB_BOOT_MACHINE_BPB_HIDDEN	0x1c
+
 /* The offset of KERNEL_SECTOR.  */
 #define GRUB_BOOT_MACHINE_KERNEL_SECTOR	0x5c
 

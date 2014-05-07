@@ -417,7 +417,7 @@ program = {
 };
 
 image = {
-  name = boot;
+  name = boot_abs;
   i386_pc = boot/i386/pc/boot.S;
   i386_qemu = boot/i386/qemu/boot.S;
   sparc64_ieee1275 = boot/sparc64/ieee1275/boot.S;
@@ -489,7 +489,7 @@ image = {
 };
 
 image = {
-  name = diskboot;
+  name = diskboot_abs;
   i386_pc = boot/i386/pc/diskboot.S;
 
   i386_pc_ldflags = '$(TARGET_IMG_LDFLAGS)';
