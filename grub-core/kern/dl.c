@@ -704,22 +704,35 @@ grub_dl_load_file (const char *filename)
   void *core = 0;
   grub_dl_t mod = 0;
 
-  if (grub_is_lockdown () == GRUB_LOCKDOWN_ENABLED)
-    {
-#if 0
-      /* This is an error, but grub2-mkconfig still generates a pile of
-       * insmod commands, so emitting it would be mostly just obnoxious. */
-      grub_error (GRUB_ERR_ACCESS_DENIED,
-		  "Lockdown forbids loading module from %s", filename);
-#endif
-      return 0;
-    }
-
   grub_boot_time ("Loading module %s", filename);
 
   file = grub_file_open (filename, GRUB_FILE_TYPE_GRUB_MODULE);
   if (! file)
     return 0;
+
+  if (grub_is_lockdown () == GRUB_LOCKDOWN_ENABLED)
+    {
+      /* 
+       * Loading from Memdisk is ok, because the memdisk is either
+       * embedded into grub and was thus signed together with it or
+       * it was checked when it was loaded
+       */
+      if (file->device == 0 ||
+	  file->device->disk == 0 ||
+	  file->device->disk->dev == 0 ||
+	  file->device->disk->dev->id != GRUB_DISK_DEVICE_MEMDISK_ID)
+	  {
+
+#if 0
+	    /* This is an error, but grub2-mkconfig still generates a pile of
+	    * insmod commands, so emitting it would be mostly just obnoxious. */
+	    grub_error (GRUB_ERR_ACCESS_DENIED,
+	    "Lockdown forbids loading module from %s", filename);
+#endif
+	    grub_file_close(file);
+	    return 0;
+	  }
+    }
 
   size = grub_file_size (file);
   core = grub_malloc (size);
