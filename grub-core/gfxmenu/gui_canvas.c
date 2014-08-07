@@ -240,9 +240,13 @@ canvas_iterate_children (void *vself,
                          grub_gui_component_callback cb, void *userdata)
 {
   grub_gui_canvas_t self = vself;
-  struct component_node *cur;
-  for (cur = self->components.next; cur; cur = cur->next)
-    cb (cur->component, userdata);
+  struct component_node *next = self->components.next;
+  while (next)
+  {
+    struct component_node *cur = next;
+    next = next->next;
+    cb(cur->component, userdata);
+  }
 }
 
 static struct grub_gui_component_ops canvas_comp_ops =
