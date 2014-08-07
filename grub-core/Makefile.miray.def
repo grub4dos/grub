@@ -53,6 +53,15 @@ module = {
 
 
 module = {
+  name = miray_gfx;
+  common = miray/bootscreen/miray_gfx_main.c;
+  common = miray/bootscreen/miray_gfx_screen.c;
+  common = miray/bootscreen/gui_activity_bar.c;
+};
+
+
+
+module = {
   name = boothelper;
   common = miray/commands/boothelper.c;
 
