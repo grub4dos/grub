@@ -1,6 +1,6 @@
 /*
  *  GRUB  --  GRand Unified Bootloader
- *  Copyright (C) 2020  Free Software Foundation, Inc.
+ *  Copyright (C) 2014,2020 Free Software Foundation, Inc.
  *
  *  GRUB is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -186,4 +186,63 @@ grub_shim_lock_verifier_setup (void)
 
   grub_env_set ("shim_lock", "y");
   grub_env_export ("shim_lock");
+}
+
+
+#include <grub/err.h>
+#include <grub/mm.h>
+#include <grub/types.h>
+#include <grub/cpu/linux.h>
+#include <grub/efi/efi.h>
+#include <grub/efi/pe32.h>
+#include <grub/efi/linux.h>
+#include <grub/efi/sb.h>
+
+int
+grub_efi_secure_boot (void)
+{
+#ifdef GRUB_MACHINE_EFI
+  grub_efi_guid_t efi_var_guid = GRUB_EFI_GLOBAL_VARIABLE_GUID;
+  grub_size_t datasize;
+  char *secure_boot = NULL;
+  char *setup_mode = NULL;
+  grub_efi_boolean_t ret = 0;
+  grub_efi_status_t status;
+
+
+  status = grub_efi_get_variable("SecureBoot", &efi_var_guid, &datasize, (void**) &secure_boot);
+  if (status != GRUB_EFI_SUCCESS)
+    goto out;
+
+  if (datasize != 1 || !secure_boot)
+    {
+      grub_dprintf ("secureboot", "No SecureBoot variable\n");
+      goto out;
+    }
+  grub_dprintf ("secureboot", "SecureBoot: %d\n", *secure_boot);
+
+  if (*secure_boot)
+    ret = 1;
+
+  status = grub_efi_get_variable("SetupMode", &efi_var_guid, &datasize, (void**) &setup_mode);
+  if (status != GRUB_EFI_SUCCESS)
+    goto out;
+
+  if (datasize != 1 || !setup_mode)
+    {    
+      grub_dprintf ("secureboot", "No SetupMode variable\n");
+      goto out;
+    }
+  grub_dprintf ("secureboot", "SetupMode: %d\n", *setup_mode);
+
+  if (*secure_boot && !*setup_mode)
+    ret = 1;
+
+ out:
+  grub_free (secure_boot);
+  grub_free (setup_mode);
+  return ret;
+#else
+  return 0;
+#endif
 }
