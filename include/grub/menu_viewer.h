@@ -45,4 +45,9 @@ grub_menu_try_text (struct grub_term_output *term,
 extern grub_err_t (*grub_gfxmenu_try_hook) (int entry, grub_menu_t menu,
 					    int nested);
 
+
+/* Miray addition */
+extern grub_err_t (*custom_menu_handler) (grub_menu_t menu, int nested, int auto_boot);
+
+
 #endif /* GRUB_MENU_VIEWER_HEADER */

@@ -28,6 +28,7 @@
 #include <grub/i18n.h>
 #include <grub/charset.h>
 #include <grub/safemath.h>
+#include <grub/miray_debug.h>
 
 enum update_mode
   {
@@ -1216,7 +1217,7 @@ run (struct screen *screen)
   grub_script_execute_new_scope (script, 0, dummy);
   grub_free (script);
 
-  if (errs_before != grub_err_printed_errors)
+  if (miray_debugmode() && errs_before != grub_err_printed_errors)
     grub_wait_after_message ();
 
   if (grub_errno == GRUB_ERR_NONE && grub_loader_is_loaded ())
@@ -1235,9 +1236,9 @@ run (struct screen *screen)
 
   if (grub_errno != GRUB_ERR_NONE)
     {
-      grub_print_error ();
+      if (miray_debugmode()) grub_print_error ();
       grub_errno = GRUB_ERR_NONE;
-      grub_wait_after_message ();
+      if (miray_debugmode()) grub_wait_after_message ();
     }
 
   return 1;
@@ -1257,11 +1258,12 @@ grub_menu_entry_run (grub_menu_entry_t entry)
 
   if (err)
     {
-      grub_print_error ();
+      if (miray_debugmode()) grub_print_error ();
       grub_errno = GRUB_ERR_NONE;
       return;
     }
 
+  grub_cls();
   screen = make_screen (entry);
   if (! screen)
     return;
@@ -1454,7 +1456,10 @@ grub_menu_entry_run (grub_menu_entry_t entry)
   grub_cls ();
   grub_print_error ();
   grub_errno = GRUB_ERR_NONE;
-  grub_xputs ("\n");
-  grub_printf_ (N_("Press any key to continue..."));
-  (void) grub_getkey ();
+  if (miray_debugmode())
+  {
+     grub_xputs ("\n");
+     grub_printf_ (N_("Press any key to continue..."));
+     (void) grub_getkey ();
+  }
 }

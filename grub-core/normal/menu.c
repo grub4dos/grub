@@ -32,6 +32,7 @@
 #include <grub/script_sh.h>
 #include <grub/gfxterm.h>
 #include <grub/dl.h>
+#include <grub/miray_debug.h>
 
 /* Time to delay after displaying an error message about a default/fallback
    entry failing to boot.  */
@@ -201,7 +202,7 @@ get_and_remove_first_entry_number (const char *name)
 }
 
 /* Run a menu entry.  */
-static void
+void
 grub_menu_execute_entry(grub_menu_entry_t entry, int auto_boot)
 {
   grub_err_t err = GRUB_ERR_NONE;
@@ -296,7 +297,7 @@ grub_menu_execute_entry(grub_menu_entry_t entry, int auto_boot)
 
   grub_script_execute_new_scope (entry->sourcecode, entry->argc, entry->args);
 
-  if (errs_before != grub_err_printed_errors)
+  if (miray_debugmode() && errs_before != grub_err_printed_errors)
     grub_wait_after_message ();
 
   errs_before = grub_err_printed_errors;
@@ -305,7 +306,7 @@ grub_menu_execute_entry(grub_menu_entry_t entry, int auto_boot)
     /* Implicit execution of boot, only if something is loaded.  */
     grub_command_execute ("boot", 0, 0);
 
-  if (errs_before != grub_err_printed_errors)
+  if (miray_debugmode() && errs_before != grub_err_printed_errors)
     grub_wait_after_message ();
 
   if (entry->submenu)
@@ -426,8 +427,10 @@ menu_init (int entry, grub_menu_t menu, int nested)
 	      grub_error (GRUB_ERR_BAD_MODULE,
 			  N_("module `%s' isn't loaded"),
 			  "gfxmenu");
+
 	    grub_print_error ();
-	    grub_wait_after_message ();
+	    if (miray_debugmode())
+          grub_wait_after_message ();
 	  }
 	grub_errno = GRUB_ERR_NONE;
 	term->fullscreen ();
@@ -489,7 +492,7 @@ menuentry_eq (const char *id, const char *spec)
 
 
 /* Get the entry number from the variable NAME.  */
-static int
+int
 get_entry_number (grub_menu_t menu, const char *name)
 {
   const char *val;
@@ -579,6 +582,9 @@ run_menu (grub_menu_t menu, int nested, int *auto_boot)
   int default_entry, current_entry;
   int timeout;
   enum timeout_style timeout_style;
+
+  if (nested == 0)
+    grub_cls();
 
   default_entry = get_entry_number (menu, "default");
 
@@ -757,7 +763,7 @@ run_menu (grub_menu_t menu, int nested, int *auto_boot)
 
 	    case '\n':
 	    case '\r':
-	    case GRUB_TERM_KEY_RIGHT:
+	    //case GRUB_TERM_KEY_RIGHT:
 	    case GRUB_TERM_CTRL | 'f':
 	      menu_fini ();
               *auto_boot = 0;
@@ -772,17 +778,21 @@ run_menu (grub_menu_t menu, int nested, int *auto_boot)
 	      break;
 
 	    case 'c':
+	      if (!miray_debugmode()) break;
 	      menu_fini ();
 	      grub_cmdline_run (1, 0);
+	      grub_cls();
 	      goto refresh;
 
 	    case 'e':
+	      if (!miray_debugmode()) break;
 	      menu_fini ();
 		{
 		  grub_menu_entry_t e = grub_menu_get_entry (menu, current_entry);
 		  if (e)
 		    grub_menu_entry_run (e);
 		}
+	      grub_cls();
 	      goto refresh;
 
 	    default:
@@ -840,7 +850,8 @@ notify_execution_failure (void *userdata __attribute__((unused)))
     }
   grub_printf ("\n  ");
   grub_printf_ (N_("Failed to boot both default and fallback entries.\n"));
-  grub_wait_after_message ();
+  if (miray_debugmode())
+    grub_wait_after_message ();
 }
 
 /* Callbacks used by the text menu to provide user feedback when menu entries
@@ -869,7 +880,7 @@ show_menu (grub_menu_t menu, int nested, int autobooted)
       if (! e)
 	continue; /* Menu is empty.  */
 
-      grub_cls ();
+      //grub_cls ();
 
       if (auto_boot)
 	grub_menu_execute_with_fallback (menu, e, autobooted,
@@ -892,7 +903,8 @@ grub_show_menu (grub_menu_t menu, int nested, int autoboot)
     {
       err1 = show_menu (menu, nested, autoboot);
       autoboot = 0;
-      grub_print_error ();
+      if (err1)
+        grub_print_error ();
 
       if (grub_normal_exit_level)
 	break;
@@ -909,4 +921,13 @@ grub_show_menu (grub_menu_t menu, int nested, int autoboot)
     }
 
   return err1;
+}
+
+
+// Forwarded change for miray-bootscreen
+int
+miray_run_menu (grub_menu_t menu)
+{
+  int auto_boot;
+  return run_menu(menu, 1, &auto_boot);
 }

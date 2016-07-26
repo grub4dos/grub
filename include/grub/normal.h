@@ -174,4 +174,7 @@ enum grub_human_size_type
 const char *
 grub_get_human_size (grub_uint64_t size, enum grub_human_size_type type);
 
+int
+get_entry_number (grub_menu_t menu, const char *name);
+
 #endif /* ! GRUB_NORMAL_HEADER */

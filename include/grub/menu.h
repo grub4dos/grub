@@ -103,4 +103,10 @@ int grub_menu_get_default_entry_index (grub_menu_t menu);
 void grub_menu_init (void);
 void grub_menu_fini (void);
 
+// Additions for Symobi bootscreen
+int miray_run_menu (grub_menu_t menu);
+void grub_menu_execute_entry(grub_menu_entry_t entry, int auto_boot);
+
+grub_menu_t read_config_file (const char *config);
+
 #endif /* GRUB_MENU_HEADER */
