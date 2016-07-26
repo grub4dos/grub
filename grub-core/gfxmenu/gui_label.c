@@ -24,6 +24,7 @@
 #include <grub/gui_string_util.h>
 #include <grub/i18n.h>
 #include <grub/color.h>
+#include <grub/env.h>
 
 static const char *align_options[] =
 {
@@ -192,6 +193,8 @@ label_set_property (void *vself, const char *name, const char *value)
 	       "or `c' for a command-line.");
 	   else if (grub_strcmp (value, "@KEYMAP_SHORT@") == 0)
 	    value = _("enter: boot, `e': options, `c': cmd-line");
+	   else if (value[0] == '$')
+	    value = grub_env_get(&value[1]);
 	   /* FIXME: Add more templates here if needed.  */
 
 	  if (grub_printf_fmt_check(value, "%d") != GRUB_ERR_NONE)
