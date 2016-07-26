@@ -41,6 +41,16 @@ image = {
 };
 
 
+module = {
+  name = miray;
+  common = miray/bootscreen/main.c;
+  common = miray/bootscreen/text_progress_bar.c;
+  common = miray/bootscreen/miray_screen.c;
+  common = miray/bootscreen/miray_text_screen.c;
+  common = miray/bootscreen/miray_bootscreen.c;
+};
+
+
 
 module = {
   name = boothelper;
@@ -49,6 +59,7 @@ module = {
   i386_pc = miray/commands/boothelper_bios.c;
   efi = miray/commands/boothelper_efi.c;
 };
+
 
 
 module = {
