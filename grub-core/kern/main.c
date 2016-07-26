@@ -271,9 +271,11 @@ grub_main (void)
   grub_boot_time ("After machine init.");
 
   /* Hello.  */
+#if 0 // Miray disable
   grub_setcolorstate (GRUB_TERM_COLOR_HIGHLIGHT);
   grub_printf ("Welcome to GRUB!\n\n");
   grub_setcolorstate (GRUB_TERM_COLOR_STANDARD);
+#endif
 
   /* Init verifiers API. */
   grub_verifiers_init ();

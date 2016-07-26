@@ -21,6 +21,7 @@
 #include <grub/misc.h>
 #include <stdarg.h>
 #include <grub/i18n.h>
+#include <grub/miray_debug.h>
 
 #define GRUB_ERROR_STACK_SIZE	10
 
@@ -107,7 +108,8 @@ grub_print_error (void)
     {
       if (grub_errno != GRUB_ERR_NONE)
 	{
-	  grub_err_printf (_("error: %s.\n"), grub_errmsg);
+	  if (miray_debugmode())
+       grub_err_printf (_("error: %s.\n"), grub_errmsg);
 	  grub_err_printed_errors++;
 	}
     }
@@ -116,7 +118,8 @@ grub_print_error (void)
   /* If there was an assert while using error stack, report about it.  */
   if (grub_error_stack_assert)
     {
-      grub_err_printf ("assert: error stack overflow detected!\n");
+      if (miray_debugmode())
+        grub_err_printf ("assert: error stack overflow detected!\n");
       grub_error_stack_assert = 0;
     }
 }
