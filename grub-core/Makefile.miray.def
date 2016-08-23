@@ -14,3 +14,10 @@ module = {
   common = miray/io/lzmaio.c;
   common = lib/LzmaDec.c;
 };
+
+
+
+module = {
+   name = miray_boottime;
+   common = miray/commands/boottime.c;
+};
