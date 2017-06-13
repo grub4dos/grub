@@ -1,2 +1,9 @@
 AutoGen definitions Makefile.tpl;
 
+module = {
+  name = boothelper;
+  common = miray/commands/boothelper.c;
+
+  i386_pc = miray/commands/boothelper_bios.c;
+  efi = miray/commands/boothelper_efi.c;
+};
