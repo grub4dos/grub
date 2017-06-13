@@ -30,4 +30,8 @@ char *EXPORT_FUNC(grub_efidisk_get_device_name) (grub_efi_handle_t *handle);
 void grub_efidisk_init (void);
 void grub_efidisk_fini (void);
 
+// Miray exported functions
+char *
+EXPORT_FUNC(miray_efi_get_diskname_from_path) (const grub_efi_device_path_t *dp);
+
 #endif /* ! GRUB_EFI_DISK_HEADER */

@@ -900,3 +900,22 @@ grub_efidisk_get_device_name (grub_efi_handle_t *handle)
     return 0;
   return grub_strdup (device_name);
 }
+
+
+
+
+// Miray exported functions
+
+// We use this to get the cd drive name from the boot image
+// Special hack needed for the way we find our boot device
+char *
+miray_efi_get_diskname_from_path(const grub_efi_device_path_t *dp)
+{
+  char device_name[NEEDED_BUFLEN];
+
+
+  if (!get_diskname_from_path (dp, device_name))
+    return 0;
+
+  return grub_strdup(device_name);
+}
