@@ -37,6 +37,8 @@ static const struct grub_arg_option options[] =
     {"file", 'f', 0, N_("Specify filename."), 0, ARG_TYPE_PATHNAME},
     {"skip-sig", 's', 0,
      N_("Skip signature-checking of the environment file."), 0, ARG_TYPE_NONE},
+    {"check-var", 'c', 0,
+     N_("Check if variable is set and if value is correct"), 0, ARG_TYPE_STRING},
     {0, 0, 0, 0, 0, 0}
   };
 
@@ -154,6 +156,34 @@ set_var (const char *name, const char *value, void *whitelist)
   return 0;
 }
 
+struct miray_env_checkval
+{
+  const char * name;
+  const char * value;
+  int found;
+};
+
+static int
+check_var(const char * name, const char *value, void* check)
+{
+  struct miray_env_checkval * c = (struct miray_env_checkval *)check;
+
+  if (grub_strcmp(name, c->name) != 0)
+    return 0;
+
+  if (c->value == NULL)
+    {
+      c->found = 1;
+      return 1;
+    }
+
+  if (grub_strcmp(value, c->value) == 0)
+    c->found = 1;
+
+  return 1;
+}
+
+
 static grub_err_t
 grub_cmd_load_env (grub_extcmd_context_t ctxt, int argc, char **args)
 {
@@ -176,6 +206,50 @@ grub_cmd_load_env (grub_extcmd_context_t ctxt, int argc, char **args)
   envblk = read_envblk_file (file);
   if (! envblk)
     goto fail;
+
+  if (state[2].set && state[2].arg)
+    {
+       // Check if a specific variable is set
+      char * name = NULL;
+      char * value = NULL;
+
+      name = grub_strdup(state[2].arg);
+      if (!name)
+	goto fail;
+
+      value = name;
+      while (*value != '\0')
+	{
+	  if (*value == '=')
+	    {
+	      *value = '\0';
+	      value++;
+	      break;
+	    }
+	  value++;
+	}
+      if (*value == '\0')
+	value = NULL;
+
+      if (*name != '\0')
+	{
+	  struct miray_env_checkval c;
+	  c.name = name;
+	  c.value = value;
+	  c.found = 0;
+
+	  grub_envblk_iterate(envblk, &c, check_var);
+	  if (!c.found)
+	    {
+	      grub_free(name);
+	      grub_envblk_close(envblk);
+	      grub_error(GRUB_ERR_TEST_FAILURE, "Specified entry not found\n");
+	      goto fail;
+	    }
+	}
+
+      grub_free(name);
+    }
 
   /* argc > 0 indicates caller provided a whitelist of variables to read. */
   grub_envblk_iterate (envblk, argc > 0 ? &whitelist : 0, set_var);
