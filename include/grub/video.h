@@ -402,6 +402,9 @@ struct grub_video_adapter
   grub_err_t (*get_edid) (struct grub_video_edid_info *edid_info);
 
   void (*print_adapter_specific_info) (void);
+
+  /* get framebuffer address (We only use this to check if the framebuffer is accessible for 32bit based addressing) */
+  void* (*get_fb) (void);
 };
 typedef struct grub_video_adapter *grub_video_adapter_t;
 
@@ -540,6 +543,8 @@ grub_err_t EXPORT_FUNC (grub_video_edid_preferred_mode) (struct grub_video_edid_
 grub_err_t EXPORT_FUNC (grub_video_set_mode) (const char *modestring,
 					      unsigned int modemask,
 					      unsigned int modevalue);
+
+void * EXPORT_FUNC(grub_get_fb) (void);
 
 static inline int
 grub_video_check_mode_flag (grub_video_mode_type_t flags,

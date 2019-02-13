@@ -321,6 +321,13 @@ grub_video_uga_get_info_and_fini (struct grub_video_mode_info *mode_info,
   return GRUB_ERR_NONE;
 }
 
+static void *
+grub_video_uga_get_fb (void)
+{
+  return (char *) framebuffer.ptr;
+}
+
+
 static struct grub_video_adapter grub_video_uga_adapter =
   {
     .name = "EFI UGA driver",
@@ -354,6 +361,7 @@ static struct grub_video_adapter grub_video_uga_adapter =
     .delete_render_target = grub_video_fb_delete_render_target,
     .set_active_render_target = grub_video_uga_set_active_render_target,
     .get_active_render_target = grub_video_fb_get_active_render_target,
+    .get_fb = grub_video_uga_get_fb,
   };
 
 GRUB_MOD_INIT(efi_uga)
