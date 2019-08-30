@@ -336,6 +336,9 @@ grub_biosdisk_open (const char *name, grub_disk_t disk)
   int drive;
   struct grub_biosdisk_data *data;
 
+  if (grub_errno != GRUB_ERR_NONE)
+    grub_error_push();
+
   drive = grub_biosdisk_get_drive (name);
   if (drive < 0)
     return grub_errno;
