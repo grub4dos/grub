@@ -721,6 +721,7 @@ grub_efi_net_config_real (grub_efi_handle_t hnd, char **device,
 {
   struct grub_net_card *card;
   grub_efi_device_path_t *dp;
+  struct grub_net_network_level_interface *inter;
 
   dp = grub_efi_get_device_path (hnd);
   if (! dp)
@@ -730,7 +731,7 @@ grub_efi_net_config_real (grub_efi_handle_t hnd, char **device,
   {
     grub_efi_device_path_t *cdp;
     struct grub_efi_pxe *pxe;
-    struct grub_efi_pxe_mode *pxe_mode;
+    struct grub_efi_pxe_mode *pxe_mode = NULL;
     grub_uint8_t *packet_buf;
     grub_size_t packet_bufsz ;
     int ipv6;
@@ -822,11 +823,21 @@ grub_efi_net_config_real (grub_efi_handle_t hnd, char **device,
       }
     else
       {
-	grub_net_configure_by_dhcp_ack (card->name, card, 0,
+	inter = grub_net_configure_by_dhcp_ack (card->name, card, 0,
 					(struct grub_net_bootp_packet *)
 					packet_buf,
 					packet_bufsz,
 					1, device, path);
+
+	if (inter && pxe && pxe_mode && pxe_mode->proxy_offer_received)
+	{
+	  /* Boot server PXE options add and override boot file/server */
+	  grub_net_process_dhcp_ack (inter,
+				     (struct grub_net_bootp_packet *)
+				     &pxe_mode->proxy_offer,
+				     sizeof (pxe_mode->proxy_offer),
+				     1, device, path);
+	}
       }
 
     if (nb)
