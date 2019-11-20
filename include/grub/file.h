@@ -178,6 +178,7 @@ extern grub_disk_read_hook_t EXPORT_VAR(grub_file_progress_hook);
 /* Filters with lower ID are executed first.  */
 typedef enum grub_file_filter_id
   {
+    GRUB_FILE_FILTER_ZZIO,
     GRUB_FILE_FILTER_GZIO,
     GRUB_FILE_FILTER_LZMAIO,
     GRUB_FILE_FILTER_XZIO,

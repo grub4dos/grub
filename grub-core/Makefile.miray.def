@@ -18,6 +18,12 @@ module = {
 
 
 module = {
+  name = zzio;
+  common = miray/io/zzio.c;
+};
+
+
+module = {
    name = miray_boottime;
    common = miray/commands/boottime.c;
 };
