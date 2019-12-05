@@ -379,10 +379,24 @@ grub_net_process_dhcp_ack (struct grub_net_network_level_interface *inter,
     *device = 0;
   }
 
+  if (is_def && (bp->server_ip || server_name))
+  {
+     if (grub_net_default_server)
+        grub_free(grub_net_default_server);
+
+     grub_net_default_server = 0;
+  }
+
   if (device && !*device && bp->server_ip)
   {
     *device = grub_xasprintf ("tftp,%s", server_ip);
     grub_print_error ();
+  }
+
+  if (is_def && !grub_net_default_server && bp->server_ip)
+  {
+     grub_net_default_server = grub_strdup(server_ip);
+	  grub_print_error ();
   }
 
   if (server_name)
