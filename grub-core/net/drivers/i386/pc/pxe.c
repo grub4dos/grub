@@ -25,6 +25,7 @@
 #include <grub/env.h>
 #include <grub/i18n.h>
 #include <grub/loader.h>
+#include <grub/net/ethernet.h>
 
 #include <grub/machine/pxe.h>
 #include <grub/machine/int.h>
@@ -38,11 +39,24 @@ GRUB_MOD_LICENSE ("GPLv3+");
 #define SEGOFS(x)	((SEGMENT(x) << 16) + OFFSET(x))
 #define LINEAR(x)	(void *) ((((x) >> 16) << 4) + ((x) & 0xFFFF))
 
+#define P_UNKNOWN      0
+#define P_IP           1
+#define P_ARP          2
+#define P_RARP         3
+
 struct grub_pxe_undi_open
 {
   grub_uint16_t status;
   grub_uint16_t open_flag;
   grub_uint16_t pkt_filter;
+  grub_uint16_t mcast_count;
+  grub_uint8_t mcast[8][6];
+} GRUB_PACKED;
+
+
+struct grub_pxe_undi_reset_adapter
+{
+  grub_uint16_t status;
   grub_uint16_t mcast_count;
   grub_uint8_t mcast[8][6];
 } GRUB_PACKED;
@@ -122,6 +136,7 @@ struct grub_pxe_undi_tbd
 
 struct grub_pxe_bangpxe *grub_pxe_pxenv;
 static grub_uint32_t pxe_rm_entry = 0;
+static int pxe_send_punknown_supported = 1;
 
 static struct grub_pxe_bangpxe *
 grub_pxe_scan (void)
@@ -165,6 +180,36 @@ grub_pxe_scan (void)
 
   return bangpxe;
 }
+
+static grub_uint16_t
+grub_pxe_reset_adapter (void)
+{
+  struct grub_pxe_undi_reset_adapter *ra;
+  ra = (void *) GRUB_MEMORY_MACHINE_SCRATCH_ADDR;
+  grub_memset (ra, 0, sizeof (*ra));
+  grub_pxe_call (GRUB_PXENV_UNDI_OPEN, ra, pxe_rm_entry);
+
+  return ra->status;
+}
+
+static grub_uint16_t
+grub_pxe_reopen (void)
+{
+  struct grub_pxe_undi_open *ou;
+
+  if (pxe_rm_entry)
+    grub_pxe_call (GRUB_PXENV_UNDI_CLOSE,
+		   (void *) GRUB_MEMORY_MACHINE_SCRATCH_ADDR,
+		   pxe_rm_entry);
+
+  ou = (void *) GRUB_MEMORY_MACHINE_SCRATCH_ADDR;
+  grub_memset (ou, 0, sizeof (*ou));
+  ou->pkt_filter = 4;
+  grub_pxe_call (GRUB_PXENV_UNDI_OPEN, ou, pxe_rm_entry);
+
+  return ou->status;
+}
+
 
 static struct grub_net_buff *
 grub_pxe_recv (struct grub_net_card *dev __attribute__ ((unused)))
@@ -255,22 +300,97 @@ grub_pxe_send (struct grub_net_card *dev __attribute__ ((unused)),
   struct grub_pxe_undi_transmit *trans;
   struct grub_pxe_undi_tbd *tbd;
   char *buf;
+  int retried = 0;
 
+grub_pxe_send_retry:
   trans = (void *) GRUB_MEMORY_MACHINE_SCRATCH_ADDR;
   grub_memset (trans, 0, sizeof (*trans));
+
+  if (pxe_send_punknown_supported)
+  {
+    trans->protocol = P_UNKNOWN;
+  }
+  else
+  {
+    /* Some PXE stacks do not support P_UNKNOWN. So strip Ethernet
+       header for known protocols and let PXE implementation add it */
+    grub_uint8_t *dst;
+    grub_uint16_t type;
+
+    dst = (void *) (GRUB_MEMORY_MACHINE_SCRATCH_ADDR + 128 - 6);
+    /* First 6 bytes are destination address */
+    grub_memcpy (dst, pack->data, 6);
+
+    grub_memcpy (&type, pack->data + 12, 2);
+    switch (type)
+      {
+      case grub_cpu_to_be16_compile_time (GRUB_NET_ETHERTYPE_IP):
+        trans->protocol = P_IP;
+        break;
+      case grub_cpu_to_be16_compile_time (GRUB_NET_ETHERTYPE_ARP):
+        trans->protocol = P_ARP;
+        break;
+      /* grub does not use RARP */
+      default:
+        trans->protocol = P_UNKNOWN;
+        break;
+      }
+    if (trans->protocol)
+      {
+        grub_err_t err;
+
+        err = grub_netbuff_pull (pack, 14);
+        if (err)
+         return err;
+        if (dst[0] == 0xff && dst[1] == 0xff && dst[2] == 0xff &&
+           dst[3] == 0xff && dst[4] == 0xff && dst[5] == 0xff)
+         trans->xmitflag = 1;
+        else
+         trans->dest = SEGOFS ((grub_addr_t) dst);
+      }
+  }
+
   tbd = (void *) (GRUB_MEMORY_MACHINE_SCRATCH_ADDR + 128);
   grub_memset (tbd, 0, sizeof (*tbd));
   buf = (void *) (GRUB_MEMORY_MACHINE_SCRATCH_ADDR + 256);
   grub_memcpy (buf, pack->data, pack->tail - pack->data);
 
   trans->tbd = SEGOFS ((grub_addr_t) tbd);
-  trans->protocol = 0;
   tbd->len = pack->tail - pack->data;
   tbd->buf = SEGOFS ((grub_addr_t) buf);
 
   grub_pxe_call (GRUB_PXENV_UNDI_TRANSMIT, trans, pxe_rm_entry);
   if (trans->status)
-    return grub_error (GRUB_ERR_IO, N_("couldn't send network packet"));
+  {
+    grub_dprintf("pxe", "pxe punknown %d, len: %d, rm: %x\n", pxe_send_punknown_supported, tbd->len, pxe_rm_entry);
+    grub_dprintf("pxe", "pxe_send status %d\n", trans->status);
+    if (! retried)
+    {
+      if (trans->status == GRUB_PXENV_STATUS_UNDI_TRANSMIT_ERROR)
+      {
+         grub_uint16_t reset_status;
+
+         reset_status = grub_pxe_reset_adapter();
+         if (reset_status == 0)
+         {
+           retried = 1;
+           goto grub_pxe_send_retry;
+         }
+         else if (reset_status == GRUB_PXENV_STATUS_UNDI_INVALID_STATE && grub_pxe_reopen() == 0)
+         {
+         /* This error is reported on "PXE-2.0 (build 082) NIC: SIS900 PXE"
+          * when using P_UNKNOWN, but using IP and ARP works,
+          * so try with fallback and let the card handle IP and ARP headers
+          */
+          pxe_send_punknown_supported = 0;
+          retried = 1;
+          goto grub_pxe_send_retry;
+         }
+      }
+    }
+
+    return grub_error (GRUB_ERR_IO, N_("couldn't send network packet, PXE status: 0x%04x"), trans->status);
+  }
   return 0;
 }
 
