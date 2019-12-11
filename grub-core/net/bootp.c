@@ -390,6 +390,11 @@ grub_net_process_dhcp_ack (struct grub_net_network_level_interface *inter,
   if (device && !*device && bp->server_ip)
   {
     *device = grub_xasprintf ("tftp,%s", server_ip);
+    if (is_def)
+    {
+      grub_env_set ("tftp_server_name", server_ip);
+      grub_env_export("tftp_server_name");
+    }
     grub_print_error ();
   }
 
@@ -410,6 +415,11 @@ grub_net_process_dhcp_ack (struct grub_net_network_level_interface *inter,
       if (device && !*device)
 	{
 	  *device = grub_xasprintf ("tftp,%s", server_name);
+    if (is_def)
+    {
+      grub_env_set ("tftp_server_name", server_ip);
+      grub_env_export("tftp_server_name");
+    }
 	  grub_print_error ();
 	}
     }
