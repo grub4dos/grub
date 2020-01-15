@@ -91,8 +91,15 @@ LOCAL (codestart):
 	/* save the boot drive */
 	movb	%dl, LOCAL(boot_drive)
 
+   /* Miray: Fix boot error on Lenovo T61 when booted through PXE */
+   cmp $GRUB_BOOT_MACHINE_PXE_DL, %dl
+   je skipreset
+
 	/* reset disk system (%ah = 0) */
 	int	$0x13
+
+   /* Miray fix */
+   skipreset:
 
 	/* transition to protected mode */
 	calll	real_to_prot
