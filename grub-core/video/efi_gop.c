@@ -29,6 +29,7 @@
 #include <grub/efi/efi.h>
 #include <grub/efi/edid.h>
 #include <grub/efi/graphics_output.h>
+#include <grub/env.h>
 
 GRUB_MOD_LICENSE ("GPLv3+");
 
@@ -347,6 +348,26 @@ grub_gop_get_preferred_mode (unsigned int *width, unsigned int *height)
   return GRUB_ERR_NONE;
 }
 
+static int
+check_prefer_edid(void)
+{
+  const char * val;
+  int ret = 0;
+
+  val = grub_env_get ("gop_prefer_edid");
+  if (! val)
+    return 0;
+
+  grub_error_push ();
+
+  ret = (int) grub_strtoul (val, 0, 0);
+  if (grub_errno != GRUB_ERR_NONE)
+   ret = 0;
+
+  grub_error_pop();
+  return ret;
+}
+
 static grub_err_t
 grub_video_gop_setup (unsigned int width, unsigned int height,
 		      unsigned int mode_type,
@@ -358,9 +379,14 @@ grub_video_gop_setup (unsigned int width, unsigned int height,
   grub_err_t err;
   unsigned bpp;
   int found = 0;
+  int canKeep = 0;
+  int useEdidPrefereed = 0;
+  int preferEdid = 0;
   unsigned long long best_volume = 0;
   unsigned int preferred_width = 0, preferred_height = 0;
   grub_uint8_t *buffer;
+
+  preferEdid = check_prefer_edid();
 
   depth = (mode_type & GRUB_VIDEO_MODE_TYPE_DEPTH_MASK)
     >> GRUB_VIDEO_MODE_TYPE_DEPTH_POS;
@@ -373,6 +399,10 @@ grub_video_gop_setup (unsigned int width, unsigned int height,
 	  preferred_width = 800;
 	  preferred_height = 600;
 	  grub_errno = GRUB_ERR_NONE;
+	}
+      else if (preferEdid)
+	{
+	  useEdidPrefereed = 1;
 	}
     }
 
@@ -388,10 +418,11 @@ grub_video_gop_setup (unsigned int width, unsigned int height,
 	  grub_dprintf ("video", "GOP: keeping mode %d\n", gop->mode->mode);
 	  best_mode = gop->mode->mode;
 	  found = 1;
+	  canKeep = 1;
 	}
     }
  
-  if (!found)
+  if (!found || useEdidPrefereed)
     {
       unsigned mode;
       grub_dprintf ("video", "GOP: %d modes detected\n", gop->mode->max_mode);
@@ -410,7 +441,7 @@ grub_video_gop_setup (unsigned int width, unsigned int height,
 	  grub_dprintf ("video", "GOP: mode %d: %dx%d\n", mode, info->width,
 			info->height);
 
-	  if (preferred_width && (info->width > preferred_width
+	  if (!canKeep && preferred_width && (info->width > preferred_width
 				  || info->height > preferred_height))
 	    {
 	      grub_dprintf ("video", "GOP: mode %d: too large\n", mode);
@@ -435,16 +466,31 @@ grub_video_gop_setup (unsigned int width, unsigned int height,
 	      continue;
 	    }
 
-	  if (best_volume < ((unsigned long long) info->width)
-	      * ((unsigned long long) info->height)
-	      * ((unsigned long long) bpp))
-	    {
-	      best_volume = ((unsigned long long) info->width)
+	  if (!canKeep)
+	  {
+	/* If we can keep the current mode don't try to get a best match */
+	    if (best_volume < ((unsigned long long) info->width)
+		* ((unsigned long long) info->height)
+		* ((unsigned long long) bpp))
+	      {
+		best_volume = ((unsigned long long) info->width)
 		* ((unsigned long long) info->height)
 		* ((unsigned long long) bpp);
+		best_mode = mode;
+	      }
+	    found = 1;
+	  }
+
+	  if (useEdidPrefereed)
+	  {
+	    /* If we want autoselect and have an exact match for the prefereed mode, then use it */
+	    if (info->width == preferred_width && info->height == preferred_height)
+	    {
 	      best_mode = mode;
+	      found = 1;
+	      break;
 	    }
-	  found = 1;
+	  }
 	}
     }
 
@@ -556,6 +602,7 @@ grub_video_gop_get_info_and_fini (struct grub_video_mode_info *mode_info,
 
   *framebuf = (char *) framebuffer.ptr;
 
+  restore_needed = 0; /* Avoid chaning the mode after getting the framebuffer */
   grub_video_fb_fini ();
 
   grub_free (framebuffer.offscreen);
