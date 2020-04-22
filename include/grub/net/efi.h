@@ -131,6 +131,7 @@ grub_efi_net_create_interface (struct grub_efi_net_device *dev,
 
 int grub_efi_net_fs_init (void);
 void grub_efi_net_fs_fini (void);
+int grub_efi_net_boot_from_pxe (void);
 int grub_efi_net_boot_from_https (void);
 int grub_efi_net_boot_from_opa (void);
 

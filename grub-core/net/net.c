@@ -1976,7 +1976,7 @@ GRUB_MOD_INIT(net)
   if (grub_net_open)
     return;
 
-  if ((grub_efi_net_boot_from_https () || grub_efi_net_boot_from_opa ())
+  if ((grub_efi_net_boot_from_pxe() || grub_efi_net_boot_from_https () || grub_efi_net_boot_from_opa ())
       && grub_efi_net_fs_init ())
     {
       cmd_lsroutes = grub_register_command ("net_ls_routes", grub_efi_net_list_routes,

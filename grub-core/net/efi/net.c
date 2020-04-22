@@ -358,9 +358,13 @@ grub_efi_net_config_from_handle (grub_efi_handle_t *hnd,
   else
     {
       grub_efi_net_ip_manual_address_t net_ip;
+      grub_efi_pxe_packet_t * ack = &pxe->mode->dhcp_ack;
+
+      if (pxe->mode->proxy_offer_received)
+        ack = &pxe->mode->proxy_offer;
 
       pxe_get_boot_location (
-		(const struct grub_net_bootp_packet *) &pxe->mode->dhcp_ack,
+		(const struct grub_net_bootp_packet *) ack,
 		device,
 		path,
 		1);
@@ -1303,6 +1307,45 @@ static struct grub_fs grub_efi_netfs =
   };
 
 int
+grub_efi_net_boot_from_pxe(void)
+{
+  grub_efi_loaded_image_t *image = NULL;
+  grub_efi_device_path_t *dp;
+
+  image = grub_efi_get_loaded_image (grub_efi_image_handle);
+  if (!image)
+    return 0;
+
+  dp = grub_efi_get_device_path (image->device_handle);
+  while (dp)
+    {
+      grub_efi_uint16_t len = GRUB_EFI_DEVICE_PATH_LENGTH (dp);
+      if (len < 4)
+      {
+	grub_error(GRUB_ERR_OUT_OF_RANGE,
+		   "malformed EFI Device Path node has length=%d", len);
+	break;
+      }
+
+      grub_efi_uint8_t type = GRUB_EFI_DEVICE_PATH_TYPE (dp);
+      grub_efi_uint8_t subtype = GRUB_EFI_DEVICE_PATH_SUBTYPE (dp);
+
+      if ((type == GRUB_EFI_MESSAGING_DEVICE_PATH_TYPE)
+	  && (subtype == GRUB_EFI_MAC_ADDRESS_DEVICE_PATH_SUBTYPE))
+	{
+	  // FIXME: For now assume that network boot means pxe
+	  return 1;
+	}
+
+      if (GRUB_EFI_END_ENTIRE_DEVICE_PATH (dp))
+	break;
+      dp = GRUB_EFI_NEXT_DEVICE_PATH(dp);
+    }
+
+  return 0;
+}
+
+int
 grub_efi_net_boot_from_https (void)
 {
   grub_efi_loaded_image_t *image = NULL;
@@ -1351,6 +1394,7 @@ grub_efi_net_boot_from_opa (void)
   image = grub_efi_get_loaded_image (grub_efi_image_handle);
   if (!image)
     return 0;
+
 
   dp = grub_efi_get_device_path (image->device_handle);
 
