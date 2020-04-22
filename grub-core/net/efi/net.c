@@ -619,7 +619,11 @@ grub_efi_netfs_open (struct grub_file *file_out __attribute__ ((unused)),
       return grub_errno;
     }
 
-  efi_net_interface(open, file, name);
+  if (efi_net_interface(open, file, name) != GRUB_ERR_NONE)
+  {
+    grub_free(file);
+    return grub_errno;
+  }
   grub_print_error ();
 
   bufio = grub_bufio_open (file, 32768);
