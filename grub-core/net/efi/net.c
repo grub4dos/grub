@@ -201,7 +201,11 @@ pxe_get_boot_location (const struct grub_net_bootp_packet *bp,
     }
 
   if (is_default)
+  {
     default_server = server;
+    grub_env_set ("tftp_server_name", server);
+    grub_env_export("tftp_server_name");
+  }
   else
     grub_free (server);
 }
