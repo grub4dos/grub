@@ -1441,6 +1441,28 @@ grub_env_write_readonly (struct grub_env_var *var __attribute__ ((unused)),
   return NULL;
 }
 
+
+grub_efi_handle_t
+grub_net_efi_get_net_handle (struct grub_net * net)
+{
+  grub_efi_net_interface_t * ifc;
+
+  if (grub_efi_net_config != grub_efi_net_config_real)
+    return 0;
+
+  if (!net || !net->server)
+    return 0;
+
+  ifc = match_route(net->server);
+  if (!ifc)
+    return 0;
+
+  if (!ifc->dev)
+    return 0;
+
+  return ifc->dev->handle;
+}
+
 grub_command_func_t grub_efi_net_list_routes = grub_cmd_efi_listroutes;
 grub_command_func_t grub_efi_net_list_cards = grub_cmd_efi_listcards;
 grub_command_func_t grub_efi_net_list_addrs = grub_cmd_efi_listaddrs;

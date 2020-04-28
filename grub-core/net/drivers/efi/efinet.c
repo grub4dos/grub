@@ -25,6 +25,7 @@
 #include <grub/i18n.h>
 #include <grub/net/netbuff.h>
 #include <grub/env.h>
+#include <grub/net/efi.h>
 
 GRUB_MOD_LICENSE ("GPLv3+");
 
@@ -844,6 +845,38 @@ grub_efi_net_config_real (grub_efi_handle_t hnd, char **device,
       grub_netbuff_free (nb);
 
     return;
+  }
+}
+
+
+grub_efi_handle_t
+grub_efinet_get_net_handle (struct grub_net * net)
+{
+  if (grub_efi_net_config == grub_efi_net_config_real)
+  {
+    // Code copied from chainloader
+
+    grub_net_network_level_address_t addr;
+    struct grub_net_network_level_interface *inf;
+    grub_net_network_level_address_t gateway;
+    grub_err_t err;
+
+    if (!net || !net->server)
+      return 0;
+
+    err = grub_net_resolve_address (net->server, &addr);
+    if (err)
+      return 0;
+
+    err = grub_net_route_address (addr, &gateway, &inf);
+    if (err)
+      return 0;
+
+    return grub_efinet_get_device_handle (inf->card);
+  }
+  else
+  {
+    return grub_net_efi_get_net_handle (net);
   }
 }
 

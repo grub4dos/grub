@@ -129,6 +129,11 @@ grub_efi_net_create_interface (struct grub_efi_net_device *dev,
 		grub_efi_net_ip_manual_address_t *net_ip,
 		int has_subnet);
 
+struct grub_net;
+
+grub_efi_handle_t
+grub_net_efi_get_net_handle (struct grub_net * net);
+
 int grub_efi_net_fs_init (void);
 void grub_efi_net_fs_fini (void);
 int grub_efi_net_boot_from_pxe (void);

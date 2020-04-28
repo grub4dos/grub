@@ -124,4 +124,9 @@ struct grub_net_card;
 grub_efi_handle_t
 grub_efinet_get_device_handle (struct grub_net_card *card);
 
+struct grub_net;
+
+grub_efi_handle_t
+grub_efinet_get_net_handle (struct grub_net * net);
+
 #endif /* ! GRUB_EFI_EFI_HEADER */
