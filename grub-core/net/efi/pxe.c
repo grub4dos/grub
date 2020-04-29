@@ -305,6 +305,7 @@ pxe_close (struct grub_efi_net_device *dev __attribute__((unused)),
   return GRUB_ERR_NONE;
 }
 
+#if 0
 static grub_ssize_t
 pxe_read (struct grub_efi_net_device *dev,
 	  int prefer_ip6,
@@ -413,6 +414,129 @@ pxe_read (struct grub_efi_net_device *dev,
 
   return len;
 }
+#endif
+
+static grub_ssize_t
+pxe_read (struct grub_efi_net_device *dev,
+	  int prefer_ip6,
+	  grub_file_t file,
+	  char *buf,
+	  grub_size_t len)
+{
+  int i;
+  const char *p;
+  grub_efi_status_t status;
+  grub_efi_pxe_t *pxe = (prefer_ip6) ? dev->ip6_pxe : dev->ip4_pxe;
+  grub_efi_uint64_t bufsz = len;
+  grub_efi_pxe_ip_address_t server_ip;
+  char *buf2 = NULL;
+
+  if (!file->data)
+  {
+    if (pxe->mode->using_ipv6)
+      {
+        const char *rest;
+        grub_uint64_t ip6[2];
+        if (parse_ip6 (file->device->net->server, ip6, &rest) && *rest == 0)
+	  grub_memcpy (server_ip.v6.addr, ip6, sizeof (server_ip.v6.addr));
+        /* TODO: ERROR Handling Here */
+      }
+    else
+      {
+        for (i = 0, p = file->device->net->server; i < 4; ++i, ++p)
+	  server_ip.v4.addr[i] = grub_strtoul (p, &p, 10);
+      }
+
+    if (file->device->net->offset == 0 && file->size != 0 && len >= file->size)
+      {
+        status = efi_call_10 (pxe->mtftp,
+		pxe,
+		GRUB_EFI_PXE_BASE_CODE_TFTP_READ_FILE,
+		buf,
+		0,
+		&bufsz,
+		NULL,
+		&server_ip,
+		(grub_efi_char8_t *)file->device->net->name,
+		NULL,
+		0);
+
+        if (bufsz != file->size)
+          {
+            grub_error (GRUB_ERR_BUG, "Short read should not happen here");
+            grub_print_error ();
+            return 0;
+          }
+
+	// Ignore buffer too small when we were reading at the start of the file
+	// We do need to read the complete file again if we want more data,
+	// but we can do that at the time when we actually need it
+	// This avoids reading the whole file if we just want to check a header
+	if (status != GRUB_EFI_SUCCESS && status != GRUB_EFI_BUFFER_TOO_SMALL)
+	{
+	  if (buf2)
+	    grub_free (buf2);
+
+          grub_error (GRUB_ERR_IO, "Failed to Read File");
+          grub_print_error ();
+          return 0;
+        }
+
+        file->device->net->offset += len;
+        return len;
+      }
+    else
+      {
+        bufsz = file->size;
+        buf2 = grub_malloc (bufsz);
+
+	if (!buf2)
+	  {
+	    grub_error (GRUB_ERR_OUT_OF_MEMORY, "ERROR OUT OF MEMORY");
+	    grub_print_error ();
+	    return 0;
+	  }
+
+	status = efi_call_10 (pxe->mtftp,
+		pxe,
+		GRUB_EFI_PXE_BASE_CODE_TFTP_READ_FILE,
+		buf2,
+		0,
+		&bufsz,
+		NULL,
+		&server_ip,
+		(grub_efi_char8_t *)file->device->net->name,
+		NULL,
+		0);
+      }
+
+    if (status != GRUB_EFI_SUCCESS)
+      {
+	if (buf2)
+	  grub_free (buf2);
+
+	grub_error (GRUB_ERR_IO, "Failed to Read File");
+	grub_print_error ();
+	return 0;
+      }
+
+    if (buf2)
+      file->data = buf2;
+  }
+
+  if (file->data)
+    {
+      /* TODO: RANGE Check for offset and file size */
+      grub_memcpy (buf, (char*)file->data + file->device->net->offset, len);
+      file->device->net->offset += len;
+      return len;
+    }
+
+  grub_error (GRUB_ERR_IO, "Failed to Read File");
+  grub_print_error ();
+  return 0;
+}
+
 
 struct grub_efi_net_io io_pxe =
   {
