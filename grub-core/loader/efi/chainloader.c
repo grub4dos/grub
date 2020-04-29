@@ -252,7 +252,11 @@ grub_cmd_chainloader (grub_command_t cmd __attribute__ ((unused)),
 
   if (dev->disk)
     dev_handle = grub_efidisk_get_device_handle (dev->disk);
-  else if (dev->net && dev->net->server)
+  else if (dev->net)
+    dev_handle = grub_efinet_get_net_handle(dev->net);
+
+#if 0
+          && dev->net->server)
     {
       grub_net_network_level_address_t addr;
       struct grub_net_network_level_interface *inf;
@@ -269,6 +273,7 @@ grub_cmd_chainloader (grub_command_t cmd __attribute__ ((unused)),
 
       dev_handle = grub_efinet_get_device_handle (inf->card);
     }
+#endif
 
   if (dev_handle)
     dp = grub_efi_get_device_path (dev_handle);
