@@ -104,6 +104,13 @@
     { 0x9a, 0x2d, 0x00, 0x90, 0x27, 0x3f, 0xc1, 0x4d } \
   }
 
+#define GRUB_EFI_PXE_CALLBACK_GUID \
+  { 0x245dca21, 0xfb7b, 0x11d3, \
+    { 0x8f, 0x01, 0x00, 0xa0, 0xc9, 0x69, 0x72, 0x3b } \
+  }
+
+#define GRUB_EFI_PXE_CALLBACK_VERSION 0x00010000
+
 #define GRUB_EFI_DEVICE_PATH_GUID	\
   { 0x09576e91, 0x6d3f, 0x11d2, \
     { 0x8e, 0x39, 0x00, 0xa0, 0xc9, 0x69, 0x72, 0x3b } \
@@ -1648,7 +1655,12 @@ typedef struct grub_efi_pxe
   void (*udpread) (void);
   void (*setipfilter) (void);
   void (*arp) (void);
-  void (*setparams) (void);
+  grub_efi_status_t (*setparams) (struct grub_efi_pxe *this,
+                     grub_efi_boolean_t *new_auto_arp,
+                     grub_efi_boolean_t * new_send_guid,
+                     grub_uint8_t * new_ttl,
+                     grub_uint8_t * new_tos,
+                     grub_efi_boolean_t * new_make_callback);
   grub_efi_status_t (*set_station_ip) (struct grub_efi_pxe *this,
 			    grub_efi_pxe_ip_address_t *new_station_ip,
 			    grub_efi_pxe_ip_address_t *new_subnet_mask);
@@ -1656,6 +1668,39 @@ typedef struct grub_efi_pxe
   void (*setpackets) (void);
   struct grub_efi_pxe_mode *mode;
 } grub_efi_pxe_t;
+
+
+#define GRUB_EFI_EFIAPI __attribute__((ms_abi))
+
+typedef enum {
+  EFI_PXE_BASE_CODE_CALLBACK_STATUS_FIRST,
+  EFI_PXE_BASE_CODE_CALLBACK_STATUS_CONTINUE,
+  EFI_PXE_BASE_CODE_CALLBACK_STATUS_ABORT,
+  EFI_PXE_BASE_CODE_CALLBACK_STATUS_LAST
+} grub_efi_base_code_callback_status_t;
+
+typedef enum {
+  EFI_PXE_BASE_CODE_FUNCTION_FIRST,
+  EFI_PXE_BASE_CODE_FUNCTION_DHCP,
+  EFI_PXE_BASE_CODE_FUNCTION_DISCOVER,
+  EFI_PXE_BASE_CODE_FUNCTION_MTFTP,
+  EFI_PXE_BASE_CODE_FUNCTION_UDP_WRITE,
+  EFI_PXE_BASE_CODE_FUNCTION_UDP_READ,
+  EFI_PXE_BASE_CODE_FUNCTION_ARP,
+  EFI_PXE_BASE_CODE_FUNCTION_IGMP,
+  EFI_PXE_BASE_CODE_FUNCTION_LAST,
+} grub_efi_pxe_base_code_function_t;
+
+typedef struct grub_efi_pxe_base_code_callback
+{
+  grub_uint64_t rev;
+  grub_efi_base_code_callback_status_t GRUB_EFI_EFIAPI (*callback) (struct grub_efi_pxe_base_code_callback *this, 
+                                                         grub_efi_pxe_base_code_function_t function,
+                                                         grub_efi_boolean_t received,
+                                                         grub_uint32_t packet_len,
+                                                         void * packet);
+
+} grub_efi_pxe_callback_t;
 
 #define GRUB_EFI_BLACK		0x00
 #define GRUB_EFI_BLUE		0x01

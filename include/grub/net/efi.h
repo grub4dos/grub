@@ -67,6 +67,7 @@ struct grub_efi_net_device
   grub_efi_pxe_t *ip4_pxe;
   grub_efi_handle_t ip6_pxe_handle;
   grub_efi_pxe_t *ip6_pxe;
+  grub_efi_pxe_callback_t pxe_callback;
   grub_efi_handle_t dhcp4_handle;
   grub_efi_dhcp4_protocol_t *dhcp4;
   grub_efi_handle_t dhcp6_handle;
@@ -133,6 +134,9 @@ struct grub_net;
 
 grub_efi_handle_t
 grub_net_efi_get_net_handle (struct grub_net * net);
+
+void grub_efi_net_register_pxe_callback(struct grub_efi_net_device *dev);
+void grub_efi_net_unregister_pxe_callback(struct grub_efi_net_device *dev);
 
 int grub_efi_net_fs_init (void);
 void grub_efi_net_fs_fini (void);

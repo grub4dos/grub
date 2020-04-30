@@ -5,6 +5,151 @@
 #include <grub/net/efi.h>
 #include <grub/charset.h>
 
+static grub_efi_guid_t pxe_callback_guid = GRUB_EFI_PXE_CALLBACK_GUID;
+
+grub_file_t current_pxe_file = NULL;
+grub_uint32_t current_progress = 0;
+
+static void send_current_progress (void)
+{
+  // Limit number of grub_file_progress_hook calls
+  // to avoid slowing down the transfer too much
+  current_pxe_file->device->net->offset += current_progress;
+
+  if (grub_file_progress_hook)
+  {
+    grub_file_progress_hook (0, 0, current_progress, current_pxe_file);
+  }
+  current_progress = 0;
+}
+
+static grub_efi_base_code_callback_status_t GRUB_EFI_EFIAPI
+grub_efi_net_pxe_callback (__attribute__((unused)) struct grub_efi_pxe_base_code_callback *this, 
+                           __attribute__((unused)) grub_efi_pxe_base_code_function_t function,
+                           grub_efi_boolean_t received,
+                           grub_uint32_t packet_len,
+                           void * packet)
+{
+  // We ignore the function value because of a bug in TianoCore.
+  // Due to the bug function was never set to EFI_PXE_BASE_CODE_FUNCTION_MTFTP but to EFI_PXE_BASE_CODE_FUNCTION_DHCP
+  // We set pxe_file while reading and we hope that this is enough....
+  if (current_pxe_file != 0 && received && packet_len > 4)
+  {
+    grub_uint16_t * header = (grub_uint16_t*)packet;
+    if (grub_be_to_cpu16(header[0]) == 3) // Data
+    {
+      current_progress += packet_len - 4;
+
+      if (current_progress >= 16 * 1024)
+        send_current_progress();
+    }
+  }
+
+  return EFI_PXE_BASE_CODE_CALLBACK_STATUS_CONTINUE;
+}
+
+void grub_efi_net_register_pxe_callback(struct grub_efi_net_device *dev)
+{
+  if (dev->pxe_callback.callback != 0)
+    return;
+
+  if (!dev->ip4_pxe && !dev->ip6_pxe)
+    return;
+
+  {
+    grub_efi_status_t status;
+    grub_efi_boot_services_t *b = grub_efi_system_table->boot_services;
+
+    dev->pxe_callback.rev = GRUB_EFI_PXE_CALLBACK_VERSION;
+    dev->pxe_callback.callback = grub_efi_net_pxe_callback;
+
+    status = efi_call_4 (b->install_protocol_interface,
+                  &dev->handle,
+                  &pxe_callback_guid,
+                  GRUB_EFI_NATIVE_INTERFACE,
+                  &dev->pxe_callback);
+
+    if (status != GRUB_EFI_SUCCESS)
+    {
+      dev->pxe_callback.callback = NULL;
+      grub_printf("Could not install callback interface: %d\n", (int)status);
+      return;
+    }
+  }
+
+  if (dev->ip4_pxe && dev->ip4_pxe->mode->started)
+  {
+    grub_efi_boolean_t enable = 1;
+    grub_efi_status_t status;
+
+    status = efi_call_6(dev->ip4_pxe->setparams, dev->ip4_pxe, 0,0,0,0, &enable);    
+    if (status != GRUB_EFI_SUCCESS)
+    {
+      grub_printf("Could not enable pxe callback for ipv4: %d\n", (int)status);            
+    }
+  }
+
+  if (dev->ip6_pxe && dev->ip6_pxe->mode->started)
+  {
+    grub_efi_boolean_t enable = 1;
+    grub_efi_status_t status;
+
+    status = efi_call_6(dev->ip6_pxe->setparams, dev->ip6_pxe, 0,0,0,0, &enable);    
+    if (status != GRUB_EFI_SUCCESS)
+    {
+      grub_printf("Could not enable pxe callback for ipv6: %d\n", (int)status);            
+    }
+  }
+}
+
+void grub_efi_net_unregister_pxe_callback(struct grub_efi_net_device *dev)
+{
+  if (dev->pxe_callback.callback == 0)
+    return;
+
+  if (dev->ip4_pxe && dev->ip4_pxe->mode->started)
+  {
+    grub_efi_boolean_t enable = 0;
+    grub_efi_status_t status;
+
+    status = efi_call_6(dev->ip4_pxe->setparams, dev->ip4_pxe, 0,0,0,0, &enable);    
+    if (status != GRUB_EFI_SUCCESS)
+    {
+      grub_printf("Could not disable pxe callback for ipv4: %d\n", (int)status);            
+    }
+  }
+
+  if (dev->ip6_pxe && dev->ip6_pxe->mode->started)
+  {
+    grub_efi_boolean_t enable = 0;
+    grub_efi_status_t status;
+
+    status = efi_call_6(dev->ip6_pxe->setparams, dev->ip6_pxe, 0,0,0,0, &enable);    
+    if (status != GRUB_EFI_SUCCESS)
+    {
+      grub_printf("Could not disable pxe callback for ipv6: %d\n", (int)status);            
+    }
+  }
+
+  {
+    grub_efi_status_t status;
+    grub_efi_boot_services_t *b = grub_efi_system_table->boot_services;
+
+    status = efi_call_3 (b->uninstall_protocol_interface,
+                dev->handle,
+                &pxe_callback_guid,
+                &dev->pxe_callback);
+    if (status == GRUB_EFI_SUCCESS)
+    {
+       dev->pxe_callback.callback = NULL;
+    }
+    else
+    {
+      grub_printf("Could not remove pxe callback interface: %d\n", (int)status);
+    }
+  }
+}
+
 static grub_efi_ip6_config_manual_address_t *
 efi_ip6_config_manual_address (grub_efi_ip6_config_protocol_t *ip6_config)
 {
@@ -428,6 +573,7 @@ pxe_read (struct grub_efi_net_device *dev,
   grub_efi_status_t status;
   grub_efi_pxe_t *pxe = (prefer_ip6) ? dev->ip6_pxe : dev->ip4_pxe;
   grub_efi_uint64_t bufsz = len;
+  grub_uint64_t oldOffset = file->device->net->offset;
   grub_efi_pxe_ip_address_t server_ip;
   char *buf2 = NULL;
 
@@ -449,6 +595,9 @@ pxe_read (struct grub_efi_net_device *dev,
 
     if (file->device->net->offset == 0 && file->size != 0 && len >= file->size)
       {
+        current_pxe_file = file;
+        current_progress = 0;
+
         status = efi_call_10 (pxe->mtftp,
 		pxe,
 		GRUB_EFI_PXE_BASE_CODE_TFTP_READ_FILE,
@@ -460,6 +609,10 @@ pxe_read (struct grub_efi_net_device *dev,
 		(grub_efi_char8_t *)file->device->net->name,
 		NULL,
 		0);
+
+        if (current_progress > 0)
+          send_current_progress();
+        current_pxe_file = 0;
 
         if (bufsz != file->size)
           {
@@ -482,7 +635,7 @@ pxe_read (struct grub_efi_net_device *dev,
           return 0;
         }
 
-        file->device->net->offset += len;
+        file->device->net->offset = oldOffset + len;
         return len;
       }
     else
@@ -497,6 +650,8 @@ pxe_read (struct grub_efi_net_device *dev,
 	    return 0;
 	  }
 
+        current_pxe_file = file;
+
 	status = efi_call_10 (pxe->mtftp,
 		pxe,
 		GRUB_EFI_PXE_BASE_CODE_TFTP_READ_FILE,
@@ -508,6 +663,10 @@ pxe_read (struct grub_efi_net_device *dev,
 		(grub_efi_char8_t *)file->device->net->name,
 		NULL,
 		0);
+
+        if (current_progress > 0)
+          send_current_progress();
+        current_pxe_file = 0;
       }
 
     if (status != GRUB_EFI_SUCCESS)
@@ -527,8 +686,8 @@ pxe_read (struct grub_efi_net_device *dev,
   if (file->data)
     {
       /* TODO: RANGE Check for offset and file size */
-      grub_memcpy (buf, (char*)file->data + file->device->net->offset, len);
-      file->device->net->offset += len;
+      grub_memcpy (buf, (char*)file->data + oldOffset, len);
+      file->device->net->offset = oldOffset + len;
       return len;
     }
 

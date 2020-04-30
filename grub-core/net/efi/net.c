@@ -12,6 +12,7 @@
 #include <grub/efi/dhcp.h>
 #include <grub/net/efi.h>
 #include <grub/charset.h>
+#include <grub/loader.h>
 
 GRUB_MOD_LICENSE ("GPLv3+");
 
@@ -26,6 +27,8 @@ static grub_efi_guid_t dhcp4_service_binding_guid = GRUB_EFI_DHCP4_SERVICE_BINDI
 static grub_efi_guid_t dhcp4_guid = GRUB_EFI_DHCP4_PROTOCOL_GUID;
 static grub_efi_guid_t dhcp6_service_binding_guid = GRUB_EFI_DHCP6_SERVICE_BINDING_PROTOCOL_GUID;
 static grub_efi_guid_t dhcp6_guid = GRUB_EFI_DHCP6_PROTOCOL_GUID;
+
+static struct grub_preboot *efi_net_fini_hnd;
 
 struct grub_efi_net_device *net_devices;
 
@@ -916,6 +919,26 @@ grub_efi_net_add_pxebc_to_cards (void)
   grub_free (handles);
 }
 
+static void grub_efi_net_add_pxe_callback_to_cards(void)
+{
+  struct grub_efi_net_device *dev;
+
+  for (dev = net_devices; dev; dev = dev->next)
+  {
+    grub_efi_net_register_pxe_callback(dev);
+  }
+}
+
+static void grub_efi_net_remove_pxe_callback_from_cards(void)
+{
+  struct grub_efi_net_device *dev;
+
+  for (dev = net_devices; dev; dev = dev->next)
+  {
+    grub_efi_net_unregister_pxe_callback(dev);
+  }
+}
+
 static void
 set_ip_policy_to_static (void)
 {
@@ -1463,6 +1486,22 @@ grub_net_efi_get_net_handle (struct grub_net * net)
   return ifc->dev->handle;
 }
 
+static grub_err_t
+grub_efi_net_fini_hw (int noreturn __attribute__ ((unused)))
+{
+  grub_efi_net_remove_pxe_callback_from_cards();
+
+  return GRUB_ERR_NONE;
+}
+
+static grub_err_t
+grub_efi_net_restore_hw (void)
+{
+  grub_efi_net_add_pxe_callback_to_cards();
+
+  return GRUB_ERR_NONE;
+}
+
 grub_command_func_t grub_efi_net_list_routes = grub_cmd_efi_listroutes;
 grub_command_func_t grub_efi_net_list_cards = grub_cmd_efi_listcards;
 grub_command_func_t grub_efi_net_list_addrs = grub_cmd_efi_listaddrs;
@@ -1472,8 +1511,12 @@ int
 grub_efi_net_fs_init ()
 {
   grub_efi_net_find_cards ();
+  grub_efi_net_add_pxe_callback_to_cards();
   grub_efi_net_config = grub_efi_net_config_real;
   grub_net_open = grub_net_open_real;
+  efi_net_fini_hnd = grub_loader_register_preboot_hook (grub_efi_net_fini_hw,
+						grub_efi_net_restore_hw,
+						GRUB_LOADER_PREBOOT_HOOK_PRIO_DISK);
   grub_register_variable_hook ("net_default_server", grub_efi_net_var_get_server,
 			       grub_efi_net_var_set_server);
   grub_env_export ("net_default_server");
@@ -1493,7 +1536,6 @@ grub_efi_net_fs_init ()
   grub_env_set ("grub_netfs_type", "efi");
   grub_register_variable_hook ("grub_netfs_type", 0, grub_env_write_readonly);
   grub_env_export ("grub_netfs_type");
-
   return 1;
 }
 
@@ -1512,6 +1554,8 @@ grub_efi_net_fs_fini (void)
   grub_env_unset ("net_default_ip");
   grub_register_variable_hook ("net_default_mac", 0, 0);
   grub_env_unset ("net_default_mac");
+  grub_loader_unregister_preboot_hook (efi_net_fini_hnd);
+  grub_efi_net_remove_pxe_callback_from_cards();
   grub_efi_net_config = NULL;
   grub_net_open = NULL;
   grub_fs_unregister (&grub_efi_netfs);
