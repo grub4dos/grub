@@ -30,7 +30,7 @@ static grub_efi_guid_t dhcp6_guid = GRUB_EFI_DHCP6_PROTOCOL_GUID;
 
 static struct grub_preboot *efi_net_fini_hnd;
 
-struct grub_efi_net_device *net_devices;
+struct grub_efi_net_device *net_devices = 0;
 
 static char *default_server;
 static grub_efi_net_interface_t *net_interface;
@@ -1511,6 +1511,9 @@ int
 grub_efi_net_fs_init ()
 {
   grub_efi_net_find_cards ();
+  if (!net_devices)
+    return 0; // No cards found, fall back to grub code
+
   grub_efi_net_add_pxe_callback_to_cards();
   grub_efi_net_config = grub_efi_net_config_real;
   grub_net_open = grub_net_open_real;
