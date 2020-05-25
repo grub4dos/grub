@@ -161,6 +161,7 @@ grub_cmd_efi_bootp (struct grub_command *cmd __attribute__ ((unused)),
   struct grub_efi_net_device *netdev;
 
   for (netdev = net_devices; netdev; netdev = netdev->next)
+    if (netdev->ip4_config)
     {
       grub_efi_status_t status;
       grub_efi_dhcp4_mode_data_t mode;
@@ -246,6 +247,35 @@ grub_cmd_efi_bootp (struct grub_command *cmd __attribute__ ((unused)),
       if (dns_address)
 	efi_net_interface_set_dns (inf, (grub_efi_net_ip_address_t *)&dns_address);
 
+    }
+    else // ip4_config1
+    {
+      grub_efi_pxe_t *pxe = netdev->ip4_pxe;
+      grub_efi_pxe_mode_t *mode;
+      grub_efi_status_t status;
+
+      if (!pxe)
+      {
+        grub_printf("No pxe\n");
+        continue;
+      }
+
+      mode = pxe->mode;
+
+      if (!mode->started)
+	{
+	  status = efi_call_2 (pxe->start, pxe, 0);
+
+	  if (status != GRUB_EFI_SUCCESS)
+	      grub_printf ("Couldn't start PXE\n");
+	}
+
+      //status = efi_call_2 (pxe->dhcp, pxe, 0);
+      //if (status != GRUB_EFI_SUCCESS)
+	//{
+	//  grub_printf ("dhcp4 configure failed, %d\n", (int)status);
+	//  continue;
+	//}
     }
 
   return GRUB_ERR_NONE;

@@ -59,6 +59,8 @@ struct grub_efi_net_ip_manual_address
 struct grub_efi_net_device
 {
   grub_efi_handle_t handle;
+  grub_efi_simple_network_t *simple_net;
+  grub_efi_ip4_config_protocol_t *ip4_config1;
   grub_efi_ip4_config2_protocol_t *ip4_config;
   grub_efi_ip6_config_protocol_t *ip6_config;
   grub_efi_handle_t http_handle;

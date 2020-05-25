@@ -361,6 +361,11 @@
     { 0x86, 0x2e, 0xc0, 0x1c, 0xdc, 0x29, 0x1f, 0x44 } \
   }
 
+#define GRUB_EFI_IP4_CONFIG_PROTOCOL_GUID \
+  { 0x3b95aa31, 0x3793, 0x434b, \
+      { 0x86, 0x67, 0xc8, 0x07, 0x08, 0x92, 0xe0, 0x5e } \
+  }
+
 #define GRUB_EFI_IP4_CONFIG2_PROTOCOL_GUID \
   { 0x5b446ed1, 0xe30b, 0x4faa, \
       { 0x87, 0x1a, 0x36, 0x54, 0xec, 0xa3, 0x60, 0x80 } \
@@ -1996,6 +2001,28 @@ struct grub_efi_ip4_config2_manual_address {
 };
 
 typedef struct grub_efi_ip4_config2_manual_address grub_efi_ip4_config2_manual_address_t;
+
+struct grub_efi_ip4_config_data {
+   grub_efi_ipv4_address_t station_address;
+   grub_efi_ipv4_address_t subnet_mask;
+   grub_uint32_t           route_table_size;
+   grub_efi_ip4_route_table_t * route_table;
+};
+typedef struct grub_efi_ip4_config_data grub_efi_ip4_config_data_t;
+
+struct grub_efi_ip4_config_protocol
+{
+  grub_efi_status_t (*start)(struct grub_efi_ip4_config_protocol *this,
+			     grub_efi_event_t done_event,
+			     grub_efi_event_t reconfig_event);
+
+  grub_efi_status_t (*stop)(struct grub_efi_ip4_config_protocol *this);
+
+  grub_efi_status_t (*get_data) (struct grub_efi_ip4_config_protocol *this,
+				 grub_efi_uintn_t *data_size,
+				 void *data);
+};
+typedef struct grub_efi_ip4_config_protocol grub_efi_ip4_config_protocol_t;
 
 enum grub_efi_ip6_config_data_type {
   GRUB_EFI_IP6_CONFIG_DATA_TYPE_INTERFACEINFO,

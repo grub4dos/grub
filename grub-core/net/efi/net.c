@@ -13,12 +13,14 @@
 #include <grub/net/efi.h>
 #include <grub/charset.h>
 #include <grub/loader.h>
+#include <grub/term.h>
 
 GRUB_MOD_LICENSE ("GPLv3+");
 
 #define GRUB_EFI_IP6_PREFIX_LENGTH 64
 
 static grub_efi_guid_t ip4_config_guid = GRUB_EFI_IP4_CONFIG2_PROTOCOL_GUID;
+static grub_efi_guid_t ip4_config1_guid = GRUB_EFI_IP4_CONFIG_PROTOCOL_GUID;
 static grub_efi_guid_t ip6_config_guid = GRUB_EFI_IP6_CONFIG_PROTOCOL_GUID;
 static grub_efi_guid_t http_service_binding_guid = GRUB_EFI_HTTP_SERVICE_BINDING_PROTOCOL_GUID;
 static grub_efi_guid_t http_guid = GRUB_EFI_HTTP_PROTOCOL_GUID;
@@ -27,6 +29,7 @@ static grub_efi_guid_t dhcp4_service_binding_guid = GRUB_EFI_DHCP4_SERVICE_BINDI
 static grub_efi_guid_t dhcp4_guid = GRUB_EFI_DHCP4_PROTOCOL_GUID;
 static grub_efi_guid_t dhcp6_service_binding_guid = GRUB_EFI_DHCP6_SERVICE_BINDING_PROTOCOL_GUID;
 static grub_efi_guid_t dhcp6_guid = GRUB_EFI_DHCP6_PROTOCOL_GUID;
+static grub_efi_guid_t net_io_guid = GRUB_EFI_SIMPLE_NETWORK_GUID;
 
 static struct grub_preboot *efi_net_fini_hnd;
 
@@ -562,6 +565,7 @@ grub_efi_net_create_interface (struct grub_efi_net_device *dev,
 
   if (!efi_net_interface_set_address (inf, net_ip, has_subnet))
     {
+      grub_printf("Could not set address\n");
       grub_error (GRUB_ERR_BUG, N_("Set Address Failed"));
       return NULL;
     }
@@ -581,7 +585,13 @@ grub_efi_net_config_real (grub_efi_handle_t hnd, char **device,
   config_hnd = grub_efi_locate_device_path (&ip4_config_guid, grub_efi_get_device_path (hnd), NULL);
 
   if (!config_hnd)
+    config_hnd = grub_efi_locate_device_path(&ip4_config1_guid, grub_efi_get_device_path (hnd), NULL);
+
+  if (!config_hnd)
+  {
+    grub_printf("No config handle for path\n");
     return;
+  }
 
   for (netdev = net_devices; netdev; netdev = netdev->next)
     if (netdev->handle == config_hnd)
@@ -946,12 +956,15 @@ set_ip_policy_to_static (void)
 
   for (dev = net_devices; dev; dev = dev->next)
     {
-      grub_efi_ip4_config2_policy_t ip4_policy = GRUB_EFI_IP4_CONFIG2_POLICY_STATIC;
+      if (dev->ip4_config)
+      {
+        grub_efi_ip4_config2_policy_t ip4_policy = GRUB_EFI_IP4_CONFIG2_POLICY_STATIC;
 
-      if (efi_call_4 (dev->ip4_config->set_data, dev->ip4_config,
-		    GRUB_EFI_IP4_CONFIG2_DATA_TYPE_POLICY,
-		    sizeof (ip4_policy), &ip4_policy) != GRUB_EFI_SUCCESS)
-	grub_dprintf ("efinetfs", "could not set GRUB_EFI_IP4_CONFIG2_POLICY_STATIC on dev `%s'", dev->card_name);
+        if (efi_call_4 (dev->ip4_config->set_data, dev->ip4_config,
+		      GRUB_EFI_IP4_CONFIG2_DATA_TYPE_POLICY,
+		      sizeof (ip4_policy), &ip4_policy) != GRUB_EFI_SUCCESS)
+	  grub_dprintf ("efinetfs", "could not set GRUB_EFI_IP4_CONFIG2_POLICY_STATIC on dev `%s'", dev->card_name);
+      }
 
       if (dev->ip6_config)
 	{
@@ -976,6 +989,11 @@ grub_efi_net_find_cards (void)
 
   handles = grub_efi_locate_handle (GRUB_EFI_BY_PROTOCOL, &ip4_config_guid,
 				    0, &num_handles);
+
+  if (!handles) // Try old ipv4 config protocol
+    handles = grub_efi_locate_handle (GRUB_EFI_BY_PROTOCOL, &ip4_config1_guid,
+				      0, &num_handles);
+
   if (!handles)
     return;
 
@@ -983,6 +1001,8 @@ grub_efi_net_find_cards (void)
     {
       grub_efi_device_path_t *dp;
       grub_efi_ip4_config2_protocol_t *ip4_config;
+      grub_efi_ip4_config_protocol_t * ip4_config1 = NULL;
+      grub_efi_simple_network_t *simple_net = NULL;
       grub_efi_ip6_config_protocol_t *ip6_config;
       grub_efi_handle_t http_handle;
       grub_efi_http_t *http;
@@ -1000,7 +1020,16 @@ grub_efi_net_find_cards (void)
       ip4_config = grub_efi_open_protocol (*handle, &ip4_config_guid,
 				    GRUB_EFI_OPEN_PROTOCOL_GET_PROTOCOL);
       if (!ip4_config)
-	continue;
+      {
+        ip4_config1 = grub_efi_open_protocol (*handle, &ip4_config1_guid,
+				    GRUB_EFI_OPEN_PROTOCOL_GET_PROTOCOL);
+
+        if (!ip4_config1)
+	  continue;
+
+        simple_net = grub_efi_open_protocol (*handle, &net_io_guid,
+				    GRUB_EFI_OPEN_PROTOCOL_GET_PROTOCOL);
+      }
 
       ip6_config = grub_efi_open_protocol (*handle, &ip6_config_guid,
 				    GRUB_EFI_OPEN_PROTOCOL_GET_PROTOCOL);
@@ -1027,6 +1056,7 @@ grub_efi_net_find_cards (void)
       d = grub_malloc (sizeof (*d));
       if (!d)
 	{
+          grub_printf("No memory\n");
 	  grub_free (handles);
 	  while (net_devices)
 	    {
@@ -1036,8 +1066,12 @@ grub_efi_net_find_cards (void)
 	    }
 	  return;
 	}
+      grub_memset(d, 0, sizeof(*d));
+
       d->handle = *handle;
+      d->simple_net = simple_net;
       d->ip4_config = ip4_config;
+      d->ip4_config1 = ip4_config1;
       d->ip6_config = ip6_config;
       d->http_handle = http_handle;
       d->http = http;

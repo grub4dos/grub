@@ -4,6 +4,9 @@
 #include <grub/misc.h>
 #include <grub/net/efi.h>
 #include <grub/charset.h>
+#include <grub/term.h>
+
+#define ENABLE_CALLBACK
 
 static grub_efi_guid_t pxe_callback_guid = GRUB_EFI_PXE_CALLBACK_GUID;
 
@@ -23,6 +26,7 @@ static void send_current_progress (void)
   current_progress = 0;
 }
 
+#ifdef ENABLE_CALLBACK
 static grub_efi_base_code_callback_status_t GRUB_EFI_EFIAPI
 grub_efi_net_pxe_callback (__attribute__((unused)) struct grub_efi_pxe_base_code_callback *this, 
                            __attribute__((unused)) grub_efi_pxe_base_code_function_t function,
@@ -47,6 +51,7 @@ grub_efi_net_pxe_callback (__attribute__((unused)) struct grub_efi_pxe_base_code
 
   return EFI_PXE_BASE_CODE_CALLBACK_STATUS_CONTINUE;
 }
+#endif
 
 void grub_efi_net_register_pxe_callback(struct grub_efi_net_device *dev)
 {
@@ -55,6 +60,8 @@ void grub_efi_net_register_pxe_callback(struct grub_efi_net_device *dev)
 
   if (!dev->ip4_pxe && !dev->ip6_pxe)
     return;
+
+#ifdef ENABLE_CALLBACK
 
   {
     grub_efi_status_t status;
@@ -100,6 +107,7 @@ void grub_efi_net_register_pxe_callback(struct grub_efi_net_device *dev)
       grub_printf("Could not enable pxe callback for ipv6: %d\n", (int)status);            
     }
   }
+#endif
 }
 
 void grub_efi_net_unregister_pxe_callback(struct grub_efi_net_device *dev)
@@ -141,11 +149,12 @@ void grub_efi_net_unregister_pxe_callback(struct grub_efi_net_device *dev)
                 &dev->pxe_callback);
     if (status == GRUB_EFI_SUCCESS)
     {
-       dev->pxe_callback.callback = NULL;
+      dev->pxe_callback.callback = NULL;
     }
     else
     {
       grub_printf("Could not remove pxe callback interface: %d\n", (int)status);
+      //grub_refresh();
     }
   }
 }
@@ -181,6 +190,9 @@ efi_ip4_config_manual_address (grub_efi_ip4_config2_protocol_t *ip4_config)
   grub_efi_uintn_t sz;
   grub_efi_status_t status;
   grub_efi_ip4_config2_manual_address_t *manual_address;
+
+  if (!ip4_config)
+    return NULL;
 
   sz = sizeof (*manual_address);
   manual_address = grub_malloc (sz);
