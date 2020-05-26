@@ -35,6 +35,12 @@ grub_relocator_alloc_chunk_addr (struct grub_relocator *rel,
 				 grub_relocator_chunk_t *out,
 				 grub_phys_addr_t target, grub_size_t size);
 
+grub_err_t
+grub_relocator_alloc_chunk_addr_l (struct grub_relocator *rel,
+				 grub_relocator_chunk_t *out,
+				 grub_phys_addr_t target, grub_size_t size,
+				 int avoid_efi_loader_code);
+
 void *
 get_virtual_current_address (grub_relocator_chunk_t in);
 grub_phys_addr_t

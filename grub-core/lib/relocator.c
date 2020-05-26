@@ -1223,16 +1223,63 @@ adjust_limits (struct grub_relocator *rel,
     }
 }
 
+struct grub_relocator_alloc_chunk_addr_ctx
+{
+  grub_phys_addr_t target;
+  grub_size_t size;
+  int blocked;
+};
+
+/* Helper for grub_relocator_alloc_chunk_addr.  */
+static int
+grub_relocator_alloc_chunk_addr_iter (grub_uint64_t addr, grub_uint64_t sz,
+				       grub_memory_type_t type, void *data)
+{
+  struct grub_relocator_alloc_chunk_addr_ctx *ctx = data;
+
+  if ((addr <= ctx->target && addr + sz > ctx->target) ||
+      (ctx->target <= addr && ctx->target + ctx->size > addr))
+      {
+        if (type != GRUB_MEMORY_AVAILABLE)
+        {
+          ctx->blocked = 1;
+          return 1;
+        }
+      }
+  return 0;
+}
+
 grub_err_t
-grub_relocator_alloc_chunk_addr (struct grub_relocator *rel,
+grub_relocator_alloc_chunk_addr_l (struct grub_relocator *rel,
 				 grub_relocator_chunk_t *out,
-				 grub_phys_addr_t target, grub_size_t size)
+				 grub_phys_addr_t target, grub_size_t size,
+				 int check_memory)
 {
   struct grub_relocator_chunk *chunk;
   grub_phys_addr_t min_addr = 0, max_addr;
 
   if (target > ~size)
     return grub_error (GRUB_ERR_BUG, "address is out of range");
+
+  if (check_memory)
+  {
+    // Check if target addr is available or if it is blocked by the firmware
+    struct grub_relocator_alloc_chunk_addr_ctx ctx = {
+      .target = target,
+      .size = size,
+      .blocked = 0
+    };
+
+#ifdef GRUB_MACHINE_EFI
+    grub_efi_mmap_iterate_l (grub_relocator_alloc_chunk_addr_iter, &ctx, 0, (check_memory > 1) ? 1 : 0);
+#elif defined (__powerpc__) || defined (GRUB_MACHINE_XEN)
+    grub_machine_mmap_iterate (grub_relocator_alloc_chunk_addr_iter, &ctx);
+#else
+    grub_mmap_iterate (grub_relocator_alloc_chunk_addr_iter, &ctx);
+#endif
+    if (ctx.blocked)
+      return grub_error (GRUB_ERR_BAD_OS, "target memory not available");
+  }
 
   adjust_limits (rel, &min_addr, &max_addr, target, target);
 
@@ -1327,6 +1374,16 @@ grub_relocator_alloc_chunk_addr (struct grub_relocator *rel,
 #endif
   return GRUB_ERR_NONE;
 }
+
+grub_err_t
+grub_relocator_alloc_chunk_addr (struct grub_relocator *rel,
+				 grub_relocator_chunk_t *out,
+				 grub_phys_addr_t target, grub_size_t size)
+{
+  return grub_relocator_alloc_chunk_addr_l(rel, out, target, size, 1);
+}
+
+
 
 /* Context for grub_relocator_alloc_chunk_align.  */
 struct grub_relocator_alloc_chunk_align_ctx
