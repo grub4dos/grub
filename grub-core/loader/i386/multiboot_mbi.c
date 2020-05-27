@@ -97,15 +97,22 @@ load_kernel (grub_file_t file, const char *filename,
       grub_size_t code_size;
       void *source;
       grub_relocator_chunk_t ch;
+      int check_mem = 0;
 
       if (header->bss_end_addr)
 	code_size = (header->bss_end_addr - header->load_addr);
       else
 	code_size = load_size;
 
-      err = grub_relocator_alloc_chunk_addr (grub_multiboot_relocator, 
+    if ((grub_multiboot_quirks & GRUB_MULTIBOOT_QUIRK_AVOID_EFI_LOADER_CODE))
+      check_mem = 2;
+    else if (grub_multiboot_quirks & GRUB_MULTIBOOT_QUIRK_CHECK_MEMORY)
+      check_mem = 1;
+
+      err = grub_relocator_alloc_chunk_addr_l (grub_multiboot_relocator,
 					     &ch, header->load_addr,
-					     code_size);
+					     code_size,
+					     check_mem);
       if (err)
 	{
 	  grub_dprintf ("multiboot_loader", "Error loading aout kludge\n");

@@ -31,7 +31,9 @@ typedef enum
   {
     GRUB_MULTIBOOT_QUIRKS_NONE = 0,
     GRUB_MULTIBOOT_QUIRK_BAD_KLUDGE = 1,
-    GRUB_MULTIBOOT_QUIRK_MODULES_AFTER_KERNEL = 2
+    GRUB_MULTIBOOT_QUIRK_MODULES_AFTER_KERNEL = 2,
+    GRUB_MULTIBOOT_QUIRK_CHECK_MEMORY = 4,
+    GRUB_MULTIBOOT_QUIRK_AVOID_EFI_LOADER_CODE = 8
   } grub_multiboot_quirks_t;
 extern grub_multiboot_quirks_t grub_multiboot_quirks;
 

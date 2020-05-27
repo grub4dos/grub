@@ -316,6 +316,22 @@ grub_cmd_multiboot (grub_command_t cmd __attribute__ ((unused)),
 	  option_found = 1;
 	  grub_multiboot_quirks |= GRUB_MULTIBOOT_QUIRK_MODULES_AFTER_KERNEL;
 	}
+
+      if (argc != 0 && grub_strcmp (argv[0], "--quirk-check-memory") == 0)
+	{
+	  argc--;
+	  argv++;
+	  option_found = 1;
+	  grub_multiboot_quirks |= GRUB_MULTIBOOT_QUIRK_CHECK_MEMORY;
+	}
+
+      if (argc != 0 && grub_strcmp (argv[0], "--quirk-avoid-efi-loader-code") == 0)
+	{
+	  argc--;
+	  argv++;
+	  option_found = 1;
+	  grub_multiboot_quirks |= GRUB_MULTIBOOT_QUIRK_AVOID_EFI_LOADER_CODE;
+	}
     } while (option_found);
 #endif
 
