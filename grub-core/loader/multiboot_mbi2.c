@@ -288,6 +288,7 @@ grub_multiboot2_load (grub_file_t file, const char *filename)
       grub_size_t code_size;
       void *source;
       grub_relocator_chunk_t ch;
+      grub_relocator_chunk_t full;
       int check_mem = 0;
 
       if (addr_tag->bss_end_addr)
@@ -334,22 +335,72 @@ grub_multiboot2_load (grub_file_t file, const char *filename)
 	grub_dprintf ("multiboot_loader", "align=0x%lx, preference=0x%x, avoid_efi_boot_services=%d\n",
 		      (long) mld.align, mld.preference, keep_bs);
 
-      if ((grub_file_seek (file, offset)) == (grub_off_t) -1)
-	{
-	  grub_free (mld.buffer);
-	  return grub_errno;
-	}
+      if (file->size != 0 && (unsigned int)(offset + load_size) < file->size && (grub_multiboot2_quirks & GRUB_MULTIBOOT2_QUIRK_ADD_KERNEL_FILE_AS_MODULE) )
+      {
+        void * fullsource;
 
-      grub_file_read (file, source, load_size);
-      if (grub_errno)
-	{
-	  grub_free (mld.buffer);
+	err = grub_relocator_alloc_chunk_align (grub_multiboot2_relocator, &full,
+					      0x100000, UP_TO_TOP32(file->size),
+					      file->size, MULTIBOOT_MOD_ALIGN,
+					      GRUB_RELOCATOR_PREFERENCE_NONE, 1);
+	if (err)
+	  {
+	    grub_dprintf ("multiboot_loader", "Error loading aout kludge\n");
+	    return err;
+	  }
+
+	fullsource = get_virtual_current_address (full);
+
+	if ((grub_file_seek (file, 0)) == (grub_off_t) -1)
+	  {
+	    return grub_errno;
+	  }
+	grub_file_read (file, fullsource, file->size);
+	if (grub_errno)
 	  return grub_errno;
-	}
+
+	grub_memcpy(source, &((grub_uint8_t*)fullsource)[offset], load_size);
+      }
+      else
+      {
+	if ((grub_file_seek (file, offset)) == (grub_off_t) -1)
+	  {
+	    grub_free (mld.buffer);
+	    return grub_errno;
+	  }
+
+	grub_file_read (file, source, load_size);
+	if (grub_errno)
+	  {
+	    grub_free (mld.buffer);
+	    return grub_errno;
+	  }
+      }
 
       if (addr_tag->bss_end_addr)
 	grub_memset ((grub_uint8_t *) source + load_size, 0,
 		     addr_tag->bss_end_addr - load_addr - load_size);
+
+      if (file->size != 0 && (unsigned int)(offset + load_size) < file->size && (grub_multiboot2_quirks & GRUB_MULTIBOOT2_QUIRK_ADD_KERNEL_FILE_AS_MODULE))
+      {
+        char * modname;
+
+        modname = grub_strrchr(filename, '/');
+        if (!modname)
+          modname = grub_strchr(filename, ')');
+        if (modname)
+          modname++;
+        if (!modname)
+          modname = (char*)filename;
+
+        err = grub_multiboot2_add_module (get_physical_target_address (full), file->size, 1, &modname);
+        if (err)
+        {
+	  grub_dprintf ("multiboot_loader", "Error adding module\n");
+          return err;
+        }
+      }
+
     }
   else
     {

@@ -366,6 +366,14 @@ grub_cmd_multiboot (grub_command_t cmd __attribute__ ((unused)),
 	  grub_multiboot2_quirks |= GRUB_MULTIBOOT2_QUIRK_AVOID_EFI_LOADER_CODE;
 	}
 
+      if (argc != 0 && grub_strcmp (argv[0], "--quirk-add_kernel_file_as_module") == 0)
+	{
+	  argc--;
+	  argv++;
+	  option_found = 1;
+	  grub_multiboot2_quirks |= GRUB_MULTIBOOT2_QUIRK_ADD_KERNEL_FILE_AS_MODULE;
+	}
+
     } while (option_found);
 #endif
 

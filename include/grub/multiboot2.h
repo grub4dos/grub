@@ -31,7 +31,8 @@ typedef enum
   {
     GRUB_MULTIBOOT2_QUIRKS_NONE = 0,
     GRUB_MULTIBOOT2_QUIRK_CHECK_MEMORY = 1,
-    GRUB_MULTIBOOT2_QUIRK_AVOID_EFI_LOADER_CODE = 2
+    GRUB_MULTIBOOT2_QUIRK_AVOID_EFI_LOADER_CODE = 2,
+    GRUB_MULTIBOOT2_QUIRK_ADD_KERNEL_FILE_AS_MODULE = 4
   } grub_multiboot2_quirks_t;
 extern grub_multiboot2_quirks_t grub_multiboot2_quirks;
 
