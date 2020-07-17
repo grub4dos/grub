@@ -27,6 +27,14 @@
 #include <grub/types.h>
 #include <grub/err.h>
 
+typedef enum
+  {
+    GRUB_MULTIBOOT2_QUIRKS_NONE = 0,
+    GRUB_MULTIBOOT2_QUIRK_CHECK_MEMORY = 1,
+    GRUB_MULTIBOOT2_QUIRK_AVOID_EFI_LOADER_CODE = 2
+  } grub_multiboot2_quirks_t;
+extern grub_multiboot2_quirks_t grub_multiboot2_quirks;
+
 extern struct grub_relocator *grub_multiboot2_relocator;
 
 void grub_multiboot2 (int argc, char *argv[]);

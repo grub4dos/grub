@@ -335,6 +335,32 @@ grub_cmd_multiboot (grub_command_t cmd __attribute__ ((unused)),
     } while (option_found);
 #endif
 
+#ifdef GRUB_USE_MULTIBOOT2
+  grub_multiboot2_quirks = GRUB_MULTIBOOT2_QUIRKS_NONE;
+  int option_found = 0;
+
+  do
+    {
+      option_found = 0;
+      if (argc != 0 && grub_strcmp (argv[0], "--quirk-check-memory") == 0)
+	{
+	  argc--;
+	  argv++;
+	  option_found = 1;
+	  grub_multiboot2_quirks |= GRUB_MULTIBOOT2_QUIRK_CHECK_MEMORY;
+	}
+
+      if (argc != 0 && grub_strcmp (argv[0], "--quirk-avoid-efi-loader-code") == 0)
+	{
+	  argc--;
+	  argv++;
+	  option_found = 1;
+	  grub_multiboot2_quirks |= GRUB_MULTIBOOT2_QUIRK_AVOID_EFI_LOADER_CODE;
+	}
+
+    } while (option_found);
+#endif
+
   if (argc == 0)
     return grub_error (GRUB_ERR_BAD_ARGUMENT, N_("filename expected"));
 

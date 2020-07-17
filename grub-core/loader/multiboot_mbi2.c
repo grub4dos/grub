@@ -75,6 +75,7 @@ static unsigned elf_sec_shstrndx;
 static void *elf_sections;
 static int keep_bs = 0;
 static grub_uint32_t load_base_addr;
+grub_multiboot2_quirks_t grub_multiboot2_quirks;
 
 void
 grub_multiboot2_add_elfsyms (grub_size_t num, grub_size_t entsize,
@@ -287,11 +288,17 @@ grub_multiboot2_load (grub_file_t file, const char *filename)
       grub_size_t code_size;
       void *source;
       grub_relocator_chunk_t ch;
+      int check_mem = 0;
 
       if (addr_tag->bss_end_addr)
 	code_size = (addr_tag->bss_end_addr - load_addr);
       else
 	code_size = load_size;
+
+      if ((grub_multiboot2_quirks & GRUB_MULTIBOOT2_QUIRK_AVOID_EFI_LOADER_CODE))
+        check_mem = 2;
+      else if (grub_multiboot2_quirks & GRUB_MULTIBOOT2_QUIRK_CHECK_MEMORY)
+        check_mem = 1;
 
       if (mld.relocatable)
 	{
@@ -307,8 +314,8 @@ grub_multiboot2_load (grub_file_t file, const char *filename)
 						       mld.preference, keep_bs);
 	}
       else
-	err = grub_relocator_alloc_chunk_addr (grub_multiboot2_relocator,
-					       &ch, load_addr, code_size);
+	err = grub_relocator_alloc_chunk_addr_l (grub_multiboot2_relocator,
+					       &ch, load_addr, code_size, check_mem);
       if (err)
 	{
 	  grub_dprintf ("multiboot_loader", "Error loading aout kludge\n");
