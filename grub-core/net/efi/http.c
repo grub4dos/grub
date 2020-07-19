@@ -349,8 +349,8 @@ grub_efihttp_open (struct grub_efi_net_device *dev,
 		  int type)
 {
   grub_err_t err;
-  grub_off_t size;
-  char *buf;
+  grub_off_t size = 0;
+  char *buf = NULL;
 
   err = efihttp_request (dev->http, file->device->net->server, file->device->net->name, type, 1, 0);
   if (err != GRUB_ERR_NONE)
@@ -360,8 +360,11 @@ grub_efihttp_open (struct grub_efi_net_device *dev,
   if (err != GRUB_ERR_NONE)
     return err;
 
-  buf = grub_malloc (size);
-  efihttp_read (dev, buf, size);
+  if (size)
+    {
+      buf = grub_malloc (size);
+      efihttp_read (dev, buf, size);
+    }
 
   file->size = size;
   file->data = buf;
