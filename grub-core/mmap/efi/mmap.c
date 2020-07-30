@@ -29,8 +29,9 @@
   ((grub_efi_memory_descriptor_t *) ((char *) (desc) + (size)))
 
 grub_err_t
-grub_efi_mmap_iterate (grub_memory_hook_t hook, void *hook_data,
-		       int avoid_efi_boot_services)
+grub_efi_mmap_iterate_l (grub_memory_hook_t hook, void *hook_data,
+		       int avoid_efi_boot_services,
+		       int avoid_efi_loader_code)
 {
   grub_efi_uintn_t mmap_size = 0;
   grub_efi_memory_descriptor_t *map_buf = 0;
@@ -102,6 +103,13 @@ grub_efi_mmap_iterate (grub_memory_hook_t hook, void *hook_data,
 	  break;
 
 	case GRUB_EFI_LOADER_CODE:
+	  if (avoid_efi_loader_code)
+	    {
+	      hook (desc->physical_start, desc->num_pages * 4096,
+		    GRUB_MEMORY_CODE, hook_data);
+	      break;
+	    }
+	    /* FALLTHROUGH */
 	case GRUB_EFI_LOADER_DATA:
 	case GRUB_EFI_CONVENTIONAL_MEMORY:
 	  hook (desc->physical_start, desc->num_pages * 4096,
@@ -133,6 +141,13 @@ grub_efi_mmap_iterate (grub_memory_hook_t hook, void *hook_data,
     }
 
   return GRUB_ERR_NONE;
+}
+
+grub_err_t
+grub_efi_mmap_iterate (grub_memory_hook_t hook, void *hook_data,
+		       int avoid_efi_boot_services)
+{
+  return grub_efi_mmap_iterate_l (hook, hook_data, avoid_efi_boot_services, 0);
 }
 
 grub_err_t

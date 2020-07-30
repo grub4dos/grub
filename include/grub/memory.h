@@ -51,6 +51,11 @@ grub_err_t grub_mmap_iterate (grub_memory_hook_t hook, void *hook_data);
 grub_err_t
 grub_efi_mmap_iterate (grub_memory_hook_t hook, void *hook_data,
 		       int avoid_efi_boot_services);
+
+grub_err_t
+grub_efi_mmap_iterate_l (grub_memory_hook_t hook, void *hook_data,
+		       int avoid_efi_boot_services,
+		       int avoid_efi_loader_code);
 #endif
 
 #if !defined (GRUB_MACHINE_EMU) && !defined (GRUB_MACHINE_EFI)
