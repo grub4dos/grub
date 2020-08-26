@@ -95,7 +95,7 @@ get_entry_index_by_hotkey (grub_menu_t menu, int hotkey)
 
   for (i = 0, entry = menu->entry_list; i < menu->size;
        i++, entry = entry->next)
-    if (entry->hotkey == hotkey)
+    if (grub_toupper(entry->hotkey) == grub_toupper(hotkey))
       return i;
 
   return -1;
