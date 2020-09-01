@@ -225,7 +225,37 @@ grub_cmd_videoinfo (grub_command_t cmd __attribute__ ((unused)),
   return GRUB_ERR_NONE;
 }
 
-static grub_command_t cmd;
+static grub_err_t
+grub_cmd_hasedid (grub_command_t cmd __attribute__ ((unused)),
+		    int argc __attribute__ ((unused)), char **args __attribute__ ((unused)))
+{
+  grub_video_adapter_t adapter;
+
+  FOR_VIDEO_ADAPTERS (adapter)
+  {
+    unsigned int edid_width, edid_height;
+    struct grub_video_edid_info edid_info;
+
+    if (!adapter->get_edid)
+      return grub_error(GRUB_ERR_TEST_FAILURE, "No edid");
+
+    if (adapter->get_edid (&edid_info) != GRUB_ERR_NONE)
+      return grub_errno;
+
+    if (grub_video_edid_checksum (&edid_info))
+      return grub_errno;
+
+    if (grub_video_edid_preferred_mode (&edid_info, &edid_width, &edid_height))
+      return grub_errno;
+
+    if (edid_width == 0 || edid_height == 0)
+      return grub_error(GRUB_ERR_TEST_FAILURE, "Invalid w/h in edid");
+  }
+
+  return GRUB_ERR_NONE;
+}
+
+static grub_command_t cmd, cmd_edid;
 #ifdef GRUB_MACHINE_PCBIOS
 static grub_command_t cmd_vbe;
 #endif
@@ -240,6 +270,11 @@ GRUB_MOD_INIT(videoinfo)
 			       N_("List available video modes. If "
 				     "resolution is given show only modes"
 				     " matching it."));
+
+  cmd_edid = grub_register_command ("hasedid", grub_cmd_hasedid,
+			       N_(""),
+			       N_(""));
+
 #ifdef GRUB_MACHINE_PCBIOS
   cmd_vbe = grub_register_command ("vbeinfo", grub_cmd_videoinfo,
 				   /* TRANSLATORS: "x" has to be entered in,
@@ -255,6 +290,7 @@ GRUB_MOD_INIT(videoinfo)
 GRUB_MOD_FINI(videoinfo)
 {
   grub_unregister_command (cmd);
+  grub_unregister_command (cmd_edid);
 #ifdef GRUB_MACHINE_PCBIOS
   grub_unregister_command (cmd_vbe);
 #endif
