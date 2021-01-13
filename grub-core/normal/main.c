@@ -265,6 +265,11 @@ grub_normal_execute (const char *config, int nested, int batch)
 
   if (! nested)
     {
+      // Discard key presses from before GRUB was started
+      while (grub_getkey_noblock() != GRUB_TERM_NO_KEY)
+      {
+      }
+
       prefix = grub_env_get ("prefix");
       read_lists (prefix);
       grub_register_variable_hook ("prefix", NULL, read_lists_hook);
