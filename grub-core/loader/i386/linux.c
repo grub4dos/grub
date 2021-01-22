@@ -84,6 +84,14 @@ static grub_efi_uintn_t efi_mmap_size;
 static const grub_size_t efi_mmap_size = 0;
 #endif
 
+grub_err_t
+grub_cmd_linux_common (grub_command_t cmd,
+		int argc, char *argv[]);
+
+grub_err_t
+grub_cmd_initrd_common (grub_command_t cmd,
+		 int argc, char *argv[]);
+
 /* FIXME */
 #if 0
 struct idt_descriptor
@@ -1124,6 +1132,27 @@ grub_cmd_initrd (grub_command_t cmd __attribute__ ((unused)),
   return grub_errno;
 }
 
+#ifdef GRUB_MACHINE_PCBIOS
+
+// Forward there methods to i386 pc specific loader code
+
+grub_err_t
+grub_cmd_linux_common (grub_command_t cmd,
+		int argc, char *argv[])
+{
+  return grub_cmd_linux(cmd, argc, argv);
+}
+
+grub_err_t
+grub_cmd_initrd_common (grub_command_t cmd,
+		 int argc, char *argv[])
+{
+  return grub_cmd_initrd(cmd, argc, argv);
+}
+
+#else
+
+
 static grub_command_t cmd_linux, cmd_initrd;
 
 GRUB_MOD_INIT(linux)
@@ -1146,3 +1175,5 @@ GRUB_MOD_FINI(linux)
   grub_unregister_command (cmd_linux);
   grub_unregister_command (cmd_initrd);
 }
+
+#endif

@@ -475,6 +475,14 @@ grub_cmd_initrd (grub_command_t cmd __attribute__ ((unused)),
   return grub_errno;
 }
 
+extern grub_err_t
+grub_cmd_linux_common (grub_command_t cmd,
+		int argc, char *argv[]);
+
+extern grub_err_t
+grub_cmd_initrd_common (grub_command_t cmd,
+		 int argc, char *argv[]);
+
 static grub_command_t cmd_linux, cmd_linux16, cmd_initrd, cmd_initrd16;
 
 GRUB_MOD_INIT(linux16)
@@ -483,13 +491,13 @@ GRUB_MOD_INIT(linux16)
     return;
 
   cmd_linux =
-    grub_register_command ("linux", grub_cmd_linux,
+    grub_register_command ("linux", grub_cmd_linux_common,
 			   0, N_("Load Linux."));
   cmd_linux16 =
     grub_register_command ("linux16", grub_cmd_linux,
 			   0, N_("Load Linux."));
   cmd_initrd =
-    grub_register_command ("initrd", grub_cmd_initrd,
+    grub_register_command ("initrd", grub_cmd_initrd_common,
 			   0, N_("Load initrd."));
   cmd_initrd16 =
     grub_register_command ("initrd16", grub_cmd_initrd,
