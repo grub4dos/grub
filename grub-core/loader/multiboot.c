@@ -50,7 +50,7 @@
 #include <grub/video.h>
 #include <grub/memory.h>
 #include <grub/i18n.h>
-#include <grub/efi/sb.h>
+#include <grub/lockdown.h>
 
 GRUB_MOD_LICENSE ("GPLv3+");
 
@@ -445,22 +445,19 @@ static grub_command_t cmd_multiboot, cmd_module;
 
 GRUB_MOD_INIT(multiboot)
 {
-  if (grub_efi_secure_boot())
-    return;
-
   cmd_multiboot =
 #ifdef GRUB_USE_MULTIBOOT2
-    grub_register_command ("multiboot2", grub_cmd_multiboot,
-			   0, N_("Load a multiboot 2 kernel."));
+    grub_register_command_lockdown ("multiboot2", grub_cmd_multiboot,
+				    0, N_("Load a multiboot 2 kernel."));
   cmd_module =
-    grub_register_command ("module2", grub_cmd_module,
-			   0, N_("Load a multiboot 2 module."));
+    grub_register_command_lockdown ("module2", grub_cmd_module,
+				    0, N_("Load a multiboot 2 module."));
 #else
-    grub_register_command ("multiboot", grub_cmd_multiboot,
-			   0, N_("Load a multiboot kernel."));
+    grub_register_command_lockdown ("multiboot", grub_cmd_multiboot,
+				    0, N_("Load a multiboot kernel."));
   cmd_module =
-    grub_register_command ("module", grub_cmd_module,
-			   0, N_("Load a multiboot module."));
+    grub_register_command_lockdown ("module", grub_cmd_module,
+				    0, N_("Load a multiboot module."));
 #endif
 
   my_mod = mod;
@@ -468,9 +465,6 @@ GRUB_MOD_INIT(multiboot)
 
 GRUB_MOD_FINI(multiboot)
 {
-  if (grub_efi_secure_boot())
-    return;
-
   grub_unregister_command (cmd_multiboot);
   grub_unregister_command (cmd_module);
 }

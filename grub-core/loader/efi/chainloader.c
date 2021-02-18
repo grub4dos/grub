@@ -42,6 +42,7 @@
 #include <grub/macho.h>
 #include <grub/i386/macho.h>
 #endif
+#include <grub/lockdown.h>
 
 GRUB_MOD_LICENSE ("GPLv3+");
 
@@ -1031,10 +1032,10 @@ grub_cmd_chainloader (grub_command_t cmd __attribute__ ((unused)),
 	  struct grub_macho_fat_arch *archs
 	    = (struct grub_macho_fat_arch *) (head + 1);
 
-	  if (grub_efi_secure_boot())
+	  if (grub_is_lockdown () == GRUB_LOCKDOWN_ENABLED)
 	    {
 	      grub_error (GRUB_ERR_BAD_OS,
-			  "MACHO binaries are forbidden with Secure Boot");
+			  "MACHO binaries are forbidden in lockdown");
 	      goto fail;
 	    }
 

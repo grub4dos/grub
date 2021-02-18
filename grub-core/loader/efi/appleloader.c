@@ -27,6 +27,7 @@
 #include <grub/efi/sb.h>
 #include <grub/command.h>
 #include <grub/i18n.h>
+#include <grub/lockdown.h>
 
 GRUB_MOD_LICENSE ("GPLv3+");
 
@@ -228,22 +229,16 @@ static grub_command_t cmd;
 
 GRUB_MOD_INIT(appleloader)
 {
-  if (grub_efi_secure_boot())
-    return;
-
-  cmd = grub_register_command ("appleloader", grub_cmd_appleloader,
-			       N_("[OPTS]"),
-			       /* TRANSLATORS: This command is used on EFI to
-				switch to BIOS mode and boot the OS requiring
-				BIOS.  */
-			       N_("Boot BIOS-based system."));
+  cmd = grub_register_command_lockdown ("appleloader", grub_cmd_appleloader,
+					N_("[OPTS]"),
+					/* TRANSLATORS: This command is used on EFI to
+					 switch to BIOS mode and boot the OS requiring
+					 BIOS.  */
+					 N_("Boot BIOS-based system."));
   my_mod = mod;
 }
 
 GRUB_MOD_FINI(appleloader)
 {
-  if (grub_efi_secure_boot())
-    return;
-
   grub_unregister_command (cmd);
 }

@@ -35,7 +35,7 @@
 #include <grub/i18n.h>
 #include <grub/verify.h>
 #include <grub/safemath.h>
-#include <grub/efi/sb.h>
+#include <grub/lockdown.h>
 
 GRUB_MOD_LICENSE ("GPLv3+");
 
@@ -1498,12 +1498,9 @@ static grub_extcmd_t cmd_splash;
 
 GRUB_MOD_INIT(xnu)
 {
-  if (grub_efi_secure_boot())
-    return;
-
-  cmd_kernel = grub_register_command ("xnu_kernel", grub_cmd_xnu_kernel, 0,
+  cmd_kernel = grub_register_command_lockdown ("xnu_kernel", grub_cmd_xnu_kernel, 0,
 				      N_("Load XNU image."));
-  cmd_kernel64 = grub_register_command ("xnu_kernel64", grub_cmd_xnu_kernel64,
+  cmd_kernel64 = grub_register_command_lockdown ("xnu_kernel64", grub_cmd_xnu_kernel64,
 					0, N_("Load 64-bit XNU image."));
   cmd_mkext = grub_register_command_lockdown ("xnu_mkext", grub_cmd_xnu_mkext, 0,
 					      N_("Load XNU extension package."));
@@ -1522,19 +1519,19 @@ GRUB_MOD_INIT(xnu)
 						 * in extension directory.
 						 */
 						N_("Load XNU extension directory."));
-  cmd_ramdisk = grub_register_command ("xnu_ramdisk", grub_cmd_xnu_ramdisk, 0,
+  cmd_ramdisk = grub_register_command_lockdown ("xnu_ramdisk", grub_cmd_xnu_ramdisk, 0,
    /* TRANSLATORS: ramdisk here isn't identifier. It can be translated.  */
-				       N_("Load XNU ramdisk. "
-					  "It will be available in OS as md0."));
-  cmd_splash = grub_register_extcmd ("xnu_splash",
-				     grub_cmd_xnu_splash, 0, 0,
-				     N_("Load a splash image for XNU."),
-				     xnu_splash_cmd_options);
+						N_("Load XNU ramdisk. "
+						   "It will be available in OS as md0."));
+  cmd_splash = grub_register_extcmd_lockdown ("xnu_splash",
+					      grub_cmd_xnu_splash, 0, 0,
+					      N_("Load a splash image for XNU."),
+					      xnu_splash_cmd_options);
 
 #ifndef GRUB_MACHINE_EMU
-  cmd_resume = grub_register_command ("xnu_resume", grub_cmd_xnu_resume,
-				      0, N_("Load an image of hibernated"
-					    " XNU."));
+  cmd_resume = grub_register_command_lockdown ("xnu_resume", grub_cmd_xnu_resume,
+					       0, N_("Load an image of hibernated"
+						     " XNU."));
 #endif
 
   grub_cpu_xnu_init ();
@@ -1544,9 +1541,6 @@ GRUB_MOD_INIT(xnu)
 
 GRUB_MOD_FINI(xnu)
 {
-  if (grub_efi_secure_boot())
-    return;
-
 #ifndef GRUB_MACHINE_EMU
   grub_unregister_command (cmd_resume);
 #endif
