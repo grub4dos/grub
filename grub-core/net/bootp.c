@@ -510,7 +510,7 @@ grub_net_configure_by_dhcp_ack (const char *name,
   if (opt && opt_len)
     {
       grub_env_set_net_property (name, "vendor_class_identifier", (const char *) opt, opt_len);
-      if (opt && grub_strcmp (opt, "HTTPClient") == 0)
+      if (opt && grub_strcmp ((char *)opt, "HTTPClient") == 0)
         {
           char *proto, *ip, *pa;
 
