@@ -386,8 +386,35 @@ grub_cmd_multiboot (grub_command_t cmd __attribute__ ((unused)),
 
   grub_dl_ref (my_mod);
 
-  /* Skip filename.  */
-  GRUB_MULTIBOOT (init_mbi) (argc - 1, argv + 1);
+  if (grub_is_lockdown () == GRUB_LOCKDOWN_ENABLED)
+  {
+    char** tmp_argv;
+    static const char * cmdparam = "grub.lockdown";	
+    int i;
+	
+    /* 
+     * Skip filename and add a parameter to notify called
+     * kernel that grub is in lockdown.
+     * The kernel should use this to set itself to lockdown
+     */
+    tmp_argv = grub_calloc(argc + 1, sizeof(char*));
+    if (!tmp_argv)
+      goto fail;
+
+    tmp_argv[0] = (char*)cmdparam;
+    for (i = 1; i < argc; i++)
+      tmp_argv[i] = argv[i];   
+
+    
+    GRUB_MULTIBOOT (init_mbi) (argc, tmp_argv);
+
+    grub_free(tmp_argv);
+  }
+  else
+  {
+    /* Skip filename.  */
+    GRUB_MULTIBOOT (init_mbi) (argc - 1, argv + 1);
+  }
 
   grub_relocator_unload (GRUB_MULTIBOOT (relocator));
   GRUB_MULTIBOOT (relocator) = grub_relocator_new ();
