@@ -532,16 +532,16 @@ GRUB_MOD_INIT(multiboot)
 {
   cmd_multiboot =
 #ifdef GRUB_USE_MULTIBOOT2
-    grub_register_command_lockdown ("multiboot2", grub_cmd_multiboot,
+    grub_register_command ("multiboot2", grub_cmd_multiboot,
 				    0, N_("Load a multiboot 2 kernel."));
   cmd_module =
-    grub_register_command_lockdown ("module2", grub_cmd_module,
+    grub_register_command ("module2", grub_cmd_module,
 				    0, N_("Load a multiboot 2 module."));
 #else
-    grub_register_command_lockdown ("multiboot", grub_cmd_multiboot,
+    grub_register_command("multiboot", grub_cmd_multiboot,
 				    0, N_("Load a multiboot kernel."));
   cmd_module =
-    grub_register_command_lockdown ("module", grub_cmd_module,
+    grub_register_command("module", grub_cmd_module,
 				    0, N_("Load a multiboot module."));
 #endif
 
