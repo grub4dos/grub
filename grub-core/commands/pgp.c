@@ -31,6 +31,7 @@
 #include <grub/kernel.h>
 #include <grub/extcmd.h>
 #include <grub/verify.h>
+#include <grub/lockdown.h>
 
 GRUB_MOD_LICENSE ("GPLv3+");
 
@@ -954,6 +955,10 @@ GRUB_MOD_INIT(pgp)
   const char *val;
   struct grub_module_header *header;
 
+  /* Disable PGP verifier in lockdown mode, we want to only use shim_lock in that case */
+  if (grub_is_lockdown () == GRUB_LOCKDOWN_ENABLED)
+    return;
+
   val = grub_env_get ("check_signatures");
   if (val && (val[0] == '1' || val[0] == 'e'))
     sec = 1;
@@ -1010,6 +1015,10 @@ GRUB_MOD_INIT(pgp)
 
 GRUB_MOD_FINI(pgp)
 {
+  /* Disable PGP verifier in lockdown mode, we want to only use shim_lock in that case */
+  if (grub_is_lockdown () == GRUB_LOCKDOWN_ENABLED)
+    return;
+
   grub_verifier_unregister (&grub_pubkey_verifier);
   grub_unregister_extcmd (cmd);
   grub_unregister_extcmd (cmd_trust);
