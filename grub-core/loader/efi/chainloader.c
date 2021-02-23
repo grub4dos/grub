@@ -1110,8 +1110,8 @@ static grub_command_t cmd;
 
 GRUB_MOD_INIT(chainloader)
 {
-  cmd = grub_register_command ("chainloader", grub_cmd_chainloader,
-			       0, N_("Load another boot loader."));
+  cmd = grub_register_command_lockdown ("chainloader", grub_cmd_chainloader,
+					0, N_("Load another boot loader."));
   my_mod = mod;
 }
 
