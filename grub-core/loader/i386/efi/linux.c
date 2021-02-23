@@ -31,6 +31,7 @@
 #include <grub/tpm.h>
 #include <grub/safemath.h>
 #include <grub/efi/sb.h>
+#include <grub/lockdown.h>
 
 GRUB_MOD_LICENSE ("GPLv3+");
 
@@ -308,7 +309,7 @@ grub_cmd_linux (grub_command_t cmd __attribute__ ((unused)),
       goto fail;
     }
 
-  if (grub_efi_secure_boot ())
+  if (grub_efi_secure_boot () && grub_is_lockdown() != GRUB_LOCKDOWN_ENABLED)
     {
       rc = grub_linuxefi_secure_validate (kernel, filelen);
       if (rc <= 0)
