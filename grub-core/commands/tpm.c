@@ -26,6 +26,7 @@
 #include <grub/term.h>
 #include <grub/verify.h>
 #include <grub/dl.h>
+#include <grub/lockdown.h>
 
 GRUB_MOD_LICENSE ("GPLv3+");
 
@@ -86,10 +87,18 @@ struct grub_file_verifier grub_tpm_verifier = {
 
 GRUB_MOD_INIT (tpm)
 {
+  /* Disable TPM verifier in lockdown mode, we want to only use shim_lock in that case */
+  if (grub_is_lockdown () == GRUB_LOCKDOWN_ENABLED)
+    return;
+
   grub_verifier_register (&grub_tpm_verifier);
 }
 
 GRUB_MOD_FINI (tpm)
 {
+  /* Disable TPM verifier in lockdown mode, we want to only use shim_lock in that case */
+  if (grub_is_lockdown () == GRUB_LOCKDOWN_ENABLED)
+    return;
+
   grub_verifier_unregister (&grub_tpm_verifier);
 }
