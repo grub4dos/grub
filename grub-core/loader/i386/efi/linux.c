@@ -119,7 +119,7 @@ kernel_alloc(grub_efi_uintn_t size, const char * const errmsg)
     }
 
   if (addr == NULL)
-    grub_error (GRUB_ERR_OUT_OF_MEMORY, errmsg);
+    grub_error (GRUB_ERR_OUT_OF_MEMORY, "%s", errmsg);
 
   return addr;
 }
