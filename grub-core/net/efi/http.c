@@ -179,7 +179,7 @@ efihttp_request (grub_efi_http_t *http, char *server, char *name, int use_https,
   if (status != GRUB_EFI_SUCCESS)
     {
       grub_free (request_data.url);
-      return grub_error (GRUB_ERR_IO, "Fail to create an event! status=0x%x\n", status);
+      return grub_error (GRUB_ERR_IO, "Fail to create an event! status=0x%x\n", (unsigned int)status);
     }
 
   status = efi_call_2 (http->request, http, &request_token);
@@ -188,7 +188,7 @@ efihttp_request (grub_efi_http_t *http, char *server, char *name, int use_https,
     {
       efi_call_1 (b->close_event, request_token.event);
       grub_free (request_data.url);
-      return grub_error (GRUB_ERR_IO, "Fail to send a request! status=0x%x\n", status);
+      return grub_error (GRUB_ERR_IO, "Fail to send a request! status=0x%x\n", (unsigned int)status);
     }
   /* TODO: Add Timeout */
   while (!request_callback_done)
@@ -216,7 +216,7 @@ efihttp_request (grub_efi_http_t *http, char *server, char *name, int use_https,
     {
       efi_call_1 (b->close_event, request_token.event);
       grub_free (request_data.url);
-      return grub_error (GRUB_ERR_IO, "Fail to create an event! status=0x%x\n", status);
+      return grub_error (GRUB_ERR_IO, "Fail to create an event! status=0x%x\n", (unsigned int)status);
     }
 
   response_token.status = GRUB_EFI_SUCCESS;
