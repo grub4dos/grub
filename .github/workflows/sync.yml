@@ -1,0 +1,46 @@
+name: Sync
+
+on:
+  schedule:
+  - cron:  "10 */4 * * *"
+  push:
+    branches:
+      - sync
+jobs:
+  repo-sync:
+    runs-on: ubuntu-latest
+    steps:
+    - name: checkout
+      uses: actions/checkout@master
+
+    - name: sync-gnu-grub
+      uses: repo-sync/github-sync@v2
+      with:
+        source_repo: "https://git.savannah.gnu.org/git/grub.git"
+        source_branch: "master"
+        destination_branch: "gnu-grub"
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: sync-gnu-grub-extras
+      uses: repo-sync/github-sync@v2
+      with:
+        source_repo: "https://git.savannah.gnu.org/git/grub-extras.git"
+        source_branch: "master"
+        destination_branch: "gnu-grub-extras"
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: sync-rhboot-grub
+      uses: repo-sync/github-sync@v2
+      with:
+        source_repo: "https://github.com/rhboot/grub2.git"
+        source_branch: "fedora-35"
+        destination_branch: "rhboot-grub"
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: sync-miray-grub
+      uses: repo-sync/github-sync@v2
+      with:
+        source_repo: "https://github.com/MiraySoftware/grub2"
+        source_branch: "sysload_2_6"
+        destination_branch: "miray-sysload"
+        github_token: ${{ secrets.GITHUB_TOKEN }}
