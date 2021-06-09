@@ -3,9 +3,7 @@ name: Sync
 on:
   schedule:
   - cron:  "10 */4 * * *"
-  push:
-    branches:
-      - sync
+
 jobs:
   repo-sync:
     runs-on: ubuntu-latest
