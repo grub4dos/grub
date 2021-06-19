@@ -57,27 +57,6 @@ AC_CONFIG_HEADER([config-util.h])
 # calls are problematic.
 PKG_PROG_PKG_CONFIG
 
-# Program name transformations
-AC_ARG_PROGRAM
-grub_TRANSFORM([grub-bios-setup])
-grub_TRANSFORM([grub-editenv])
-grub_TRANSFORM([grub-install])
-grub_TRANSFORM([grub-mkconfig])
-grub_TRANSFORM([grub-mkfont])
-grub_TRANSFORM([grub-mkimage])
-grub_TRANSFORM([grub-glue-efi])
-grub_TRANSFORM([grub-mklayout])
-grub_TRANSFORM([grub-mkpasswd-pbkdf2])
-grub_TRANSFORM([grub-mkrelpath])
-grub_TRANSFORM([grub-mkrescue])
-grub_TRANSFORM([grub-probe])
-grub_TRANSFORM([grub-reboot])
-grub_TRANSFORM([grub-script-check])
-grub_TRANSFORM([grub-set-default])
-grub_TRANSFORM([grub-sparc64-setup])
-grub_TRANSFORM([grub-render-label])
-grub_TRANSFORM([grub-file])
-
 # Optimization flag.  Allow user to override.
 if test "x$TARGET_CFLAGS" = x; then
   TARGET_CFLAGS=-Os
@@ -98,27 +77,6 @@ TARGET_CPPFLAGS="$TARGET_CPPFLAGS -Wall -W"
 case "$target_cpu" in
   i[[3456]]86)	target_cpu=i386 ;;
   amd64)	target_cpu=x86_64 ;;
-  sparc)	target_cpu=sparc64 ;;
-  mipsel|mips64el)
-                target_cpu=mipsel
-		machine_CPPFLAGS="$machine_CPPFLAGS -DGRUB_CPU_MIPSEL=1"
-		;;
-  mips|mips64)
-                target_cpu=mips
-		machine_CPPFLAGS="$machine_CPPFLAGS -DGRUB_CPU_MIPS=1"
-		;;
-  arm*)
-		target_cpu=arm
-		;;
-  aarch64*)
-		target_cpu=arm64
-		;;
-  riscv32*)
-		target_cpu=riscv32
-		;;
-  riscv64*)
-		target_cpu=riscv64
-		;;
 esac
 
 # Specify the platform (such as firmware).
@@ -130,20 +88,9 @@ AC_ARG_WITH([platform],
 if test "x$with_platform" = x; then
   case "$target_cpu"-"$target_vendor" in
     i386-apple) platform=efi ;;
-    i386-*) platform=pc ;;
+    i386-*) platform=multiboot ;;
     x86_64-apple) platform=efi ;;
-    x86_64-*) platform=pc ;;
-    powerpc-*) platform=ieee1275 ;;
-    powerpc64-*) platform=ieee1275 ;;
-    powerpc64le-*) platform=ieee1275 ;;
-    sparc64-*) platform=ieee1275 ;;
-    mipsel-*) platform=loongson ;;
-    mips-*) platform=arc ;;
-    ia64-*) platform=efi ;;
-    arm-*) platform=uboot ;;
-    arm64-*) platform=efi ;;
-    riscv32-*) platform=efi ;;
-    riscv64-*) platform=efi ;;
+    x86_64-*) platform=efi ;;
     *)
       AC_MSG_WARN([unsupported CPU: "$target_cpu" - only building utilities])
       platform=none
@@ -155,60 +102,21 @@ fi
 
 case "$target_cpu"-"$platform" in
   x86_64-efi) ;;
-  x86_64-emu) ;;
-  x86_64-xen) ;;
-  x86_64-none) ;;
   x86_64-*) target_cpu=i386 ;;
-  powerpc64-ieee1275) target_cpu=powerpc ;;
-  powerpc64le-ieee1275) target_cpu=powerpc ;;
 esac
 
 # Check if the platform is supported, make final adjustments.
 case "$target_cpu"-"$platform" in
   i386-efi) ;;
   x86_64-efi) ;;
-  i386-xen) ;;
-  i386-xen_pvh) ;;
-  x86_64-xen) ;;
-  i386-pc) ;;
   i386-multiboot) ;;
-  i386-coreboot) ;;
-  i386-linuxbios) platform=coreboot ;;
-  i386-ieee1275) ;;
-  i386-qemu) ;;
-  powerpc-ieee1275) ;;
-  sparc64-ieee1275) ;;
-  ia64-efi) ;;
-  mips-qemu_mips) ;;
-  mips-qemu-mips) platform=qemu_mips;;
-  mips-arc) ;;
-  mipsel-arc) ;;
-  mipsel-qemu_mips) ;;
-  mipsel-qemu-mips) platform=qemu_mips;;
-  mipsel-yeeloong) platform=loongson ;;
-  mipsel-fuloong) platform=loongson ;;
-  mipsel-loongson) ;;
-  arm-uboot) ;;
-  arm-coreboot) ;;
-  arm-efi) ;;
-  arm64-efi) ;;
-  riscv32-efi) ;;
-  riscv64-efi) ;;
-  *-emu) ;;
-  *-none) ;;
   *) AC_MSG_ERROR([platform "$platform" is not supported for target CPU "$target_cpu"]) ;;
 esac
 
-if test x$platform != xemu ; then
-   case "$target_cpu" in
-	i386 | powerpc) target_m32=1 ;;
-	x86_64 | sparc64) target_m64=1 ;;
-   esac
-fi
-
-if test x"$target_cpu-$platform" = xsparc64-emu ; then
-   target_m64=1
-fi
+case "$target_cpu" in
+  i386) target_m32=1 ;;
+  x86_64) target_m64=1 ;;
+esac
 
 case "$target_os" in
   windows* | mingw32*) target_os=cygwin ;;
@@ -227,47 +135,11 @@ case "$host_os" in
   cygwin | windows* | mingw32*)	host_kernel=windows ;;
 esac
 
-case "$host_os" in
-  cygwin) have_exec=y ;;
-  windows* | mingw32*) have_exec=n ;;
-  aros*) have_exec=n ;;
-  *) have_exec=y;;
-esac
-
 case "$platform" in
-  coreboot)	machine_CPPFLAGS="$machine_CPPFLAGS -DGRUB_MACHINE_COREBOOT=1" ;;
   multiboot)	machine_CPPFLAGS="$machine_CPPFLAGS -DGRUB_MACHINE_MULTIBOOT=1" ;;
   efi)		machine_CPPFLAGS="$machine_CPPFLAGS -DGRUB_MACHINE_EFI=1" ;;
-  xen)		machine_CPPFLAGS="$machine_CPPFLAGS -DGRUB_MACHINE_XEN=1" ;;
-  xen_pvh)	machine_CPPFLAGS="$machine_CPPFLAGS -DGRUB_MACHINE_XEN_PVH=1" ;;
-  ieee1275)	machine_CPPFLAGS="$machine_CPPFLAGS -DGRUB_MACHINE_IEEE1275=1" ;;
-  uboot)	machine_CPPFLAGS="$machine_CPPFLAGS -DGRUB_MACHINE_UBOOT=1" ;;
-  qemu)		machine_CPPFLAGS="$machine_CPPFLAGS -DGRUB_MACHINE_QEMU=1" ;;
-  pc)		machine_CPPFLAGS="$machine_CPPFLAGS -DGRUB_MACHINE_PCBIOS=1" ;;
-  emu)		machine_CPPFLAGS="$machine_CPPFLAGS -DGRUB_MACHINE_EMU=1" ;;
-  loongson)	machine_CPPFLAGS="$machine_CPPFLAGS -DGRUB_MACHINE_MIPS_LOONGSON=1" ;;
-  qemu_mips)	machine_CPPFLAGS="$machine_CPPFLAGS -DGRUB_MACHINE_MIPS_QEMU_MIPS=1" ;;
-  arc)	machine_CPPFLAGS="$machine_CPPFLAGS -DGRUB_MACHINE_ARC=1" ;;
 esac
-if test x${target_cpu} = xmipsel ; then
-   machine_CPPFLAGS="$machine_CPPFLAGS -DGRUB_MACHINE=`echo mips_$platform | sed y,abcdefghijklmnopqrstuvwxyz,ABCDEFGHIJKLMNOPQRSTUVWXYZ,`"
-else
-   machine_CPPFLAGS="$machine_CPPFLAGS -DGRUB_MACHINE=`echo ${target_cpu}_$platform | sed y,abcdefghijklmnopqrstuvwxyz,ABCDEFGHIJKLMNOPQRSTUVWXYZ,`"
-fi
-
-case "${target_cpu}-$platform" in
-     mips-arc)
-        TARGET_LINK_ADDR=0x88200000
-        TARGET_DECOMPRESSOR_LINK_ADDR=0x88100000
-	;;
-     mipsel-arc)
-        TARGET_LINK_ADDR=0x80700000
-	TARGET_DECOMPRESSOR_LINK_ADDR=0x80600000
-	;;
-     mips*-qemu_mips | mips*-loongson)
-        TARGET_DECOMPRESSOR_LINK_ADDR=0x80100000
-	;;
-esac
+machine_CPPFLAGS="$machine_CPPFLAGS -DGRUB_MACHINE=`echo ${target_cpu}_$platform | sed y,abcdefghijklmnopqrstuvwxyz,ABCDEFGHIJKLMNOPQRSTUVWXYZ,`"
 
 AC_SUBST(TARGET_LINK_ADDR)
 AC_SUBST(TARGET_DECOMPRESSOR_LINK_ADDR)
@@ -377,11 +249,6 @@ AC_SYS_LARGEFILE
 # Identify characteristics of the host architecture.
 unset ac_cv_c_bigendian
 
-if test x"$target_cpu-$platform" = xsparc64-emu ; then
-  CFLAGS="$CFLAGS -m64"
-  HOST_CFLAGS="$HOST_CFLAGS -m64"
-fi
-
 CPPFLAGS="$CPPFLAGS -D_FILE_OFFSET_BITS=64"
 HOST_CPPFLAGS="$HOST_CPPFLAGS -D_FILE_OFFSET_BITS=64"
 
@@ -408,15 +275,7 @@ case "$host_os" in
      fi;;
 esac
 
-if test x$USE_NLS = xno; then
-  HOST_CFLAGS="$HOST_CFLAGS -fno-builtin-gettext"
-fi
-
-if test "x$cross_compiling" = xyes; then
-  AC_MSG_WARN([cannot generate manual pages while cross compiling])
-else
-  AC_PATH_PROG(HELP2MAN, help2man)
-fi
+HOST_CFLAGS="$HOST_CFLAGS -fno-builtin-gettext"
 
 # Check for functions and headers.
 AC_CHECK_FUNCS(posix_memalign memalign getextmntent atexit)
@@ -630,126 +489,14 @@ AC_COMPILE_IFELSE(
 ]])],
 [grub_cv_cc_target_clang=no], [grub_cv_cc_target_clang=yes])])
 
-if test x$target_cpu = xpowerpc -o x$target_cpu = xmips; then
-  AC_CACHE_CHECK([for options to get big-endian compilation], grub_cv_target_cc_big_endian, [
-    grub_cv_target_cc_big_endian=no
-    for cand in "-target $target_cpu -Wl,-EB" "-target $target_cpu" \
-		"-target $target_cpu-linux-gnu -Wl,-EB" "-target $target_cpu-linux-gnu" \
-		"-EB" "-mbig-endian"; do
-      if test x"$grub_cv_target_cc_big_endian" != xno ; then
-        break
-      fi
-      CFLAGS="$TARGET_CFLAGS $cand -Werror"
-      AC_LINK_IFELSE([AC_LANG_PROGRAM([[
-#if defined(__BYTE_ORDER__) && defined(__ORDER_BIG_ENDIAN__) && (__ORDER_BIG_ENDIAN__ != __BYTE_ORDER__)
-#error still little endian
-#endif
-asm (".globl start; start:");
-asm (".globl _start; _start:");
-asm (".globl __start; __start:");
-void __main (void);
-void __main (void) {}
-int main (void);
-]], [[]])],
-		        [grub_cv_target_cc_big_endian="$cand"], [])
-    done
-  ])
-
-  if test x"$grub_cv_target_cc_big_endian" = xno ; then
-    AC_MSG_ERROR([could not force big-endian])
-  fi
-
-  skip_linkflags="$(echo "$grub_cv_target_cc_big_endian"|sed 's@-Wl,-EB@@')"
-
-  TARGET_CFLAGS="$TARGET_CFLAGS $skip_linkflags"
-  TARGET_CPPFLAGS="$TARGET_CPPFLAGS $skip_linkflags"
-  TARGET_CCASFLAGS="$TARGET_CCASFLAGS $skip_linkflags"
-  TARGET_LDFLAGS="$TARGET_LDFLAGS $grub_cv_target_cc_big_endian"
-elif test x$target_cpu = xmipsel; then
-  AC_CACHE_CHECK([for options to get little-endian compilation], grub_cv_target_cc_little_endian, [
-    grub_cv_target_cc_little_endian=no
-    for cand in "-target $target_cpu -Wl,-EL" "-target $target_cpu" \
-		"-target $target_cpu-linux-gnu -Wl,-EL" "-target $target_cpu-linux-gnu" \
-		"-EL"; do
-      if test x"$grub_cv_target_cc_little_endian" != xno ; then
-        break
-      fi
-      CFLAGS="$TARGET_CFLAGS $cand -Werror"
-      AC_LINK_IFELSE([AC_LANG_PROGRAM([[
-#if defined(__BYTE_ORDER__) && defined(__ORDER_BIG_ENDIAN__) && (__ORDER_BIG_ENDIAN__ == __BYTE_ORDER__)
-#error still big endian
-#endif
-asm (".globl start; start:");
-asm (".globl _start; _start:");
-asm (".globl __start; __start:");
-void __main (void);
-void __main (void) {}
-int main (void);
-]], [[]])],
-		        [grub_cv_target_cc_little_endian="$cand"], [])
-    done
-  ])
-
-  if test x"$grub_cv_target_cc_little_endian" = xno ; then
-    AC_MSG_ERROR([could not force little-endian])
-  fi
-
-  skip_linkflags="$(echo "$grub_cv_target_cc_little_endian"|sed 's@-Wl,-EL@@')"
-
-  TARGET_CFLAGS="$TARGET_CFLAGS $skip_linkflags"
-  TARGET_CPPFLAGS="$TARGET_CPPFLAGS $skip_linkflags"
-  TARGET_CCASFLAGS="$TARGET_CCASFLAGS $skip_linkflags"
-  TARGET_LDFLAGS="$TARGET_LDFLAGS $grub_cv_target_cc_little_endian"
-fi
-
-# GRUB code is N32-compliant but it's experimental and we would prefer to
-# avoid having too much variety when it doesn't result in any real improvement.
-# Moreover N64 isn't supported.
-if test "x$target_cpu" = xmips || test "x$target_cpu" = xmipsel ; then
-  AC_CACHE_CHECK([for options to force MIPS o32 ABI], grub_cv_target_cc_mips_o32_abi, [
-    grub_cv_target_cc_mips_o32_abi=no
-    for arg in "" "-mabi=32" "-target $target_cpu -mabi=32" ; do
-      if test x"$grub_cv_target_cc_mips_o32_abi" != xno ; then
-        break
-      fi
-      CFLAGS="$TARGET_CFLAGS $arg -Werror"
-      AC_LINK_IFELSE([AC_LANG_PROGRAM([[
-#if !defined(_ABIO32) || !defined(_MIPS_SIM) || (_MIPS_SIM != _ABIO32)
-#error not o32 ABI
-#endif
-asm (".globl start; start:");
-asm (".globl _start; _start:");
-asm (".globl __start; __start:");
-void __main (void);
-void __main (void) {}
-int main (void);
-]], [[]])],
-		        [grub_cv_target_cc_mips_o32_abi="$arg"], [])
-    done
-  ])
-
-  if test x"$grub_cv_target_cc_mips_o32_abi" = xno ; then
-    AC_MSG_ERROR([could not force MIPS o32 ABI])
-  fi
-
-  TARGET_CFLAGS="$TARGET_CFLAGS $grub_cv_target_cc_mips_o32_abi"
-  TARGET_CCASFLAGS="$TARGET_CCASFLAGS $grub_cv_target_cc_mips_o32_abi"
-fi
-
 AC_CACHE_CHECK([for options to compile assembly], [grub_cv_cc_target_asm_compile], [
 test_program=
 case "x$target_cpu-$platform" in
-     xmips-* | xmipsel-*)
-        test_program=mips
-	;;
      xi386-pc)
        test_program=i386-pc
 	;;
      xi386-* | xx86_64-*)
        test_program=i386
-	;;
-     xpowerpc-* | xsparc64-* | xarm-*)
-        test_program=$target_cpu
 	;;
 esac
 if test x"$test_program" = x ; then
@@ -773,28 +520,13 @@ fi
 
 TARGET_CCASFLAGS="$TARGET_CCASFLAGS $grub_cv_cc_target_asm_compile"
 
-if test "x$target_cpu" = xi386 && test "x$platform" != xemu; then
+if test "x$target_cpu" = xi386; then
   TARGET_CFLAGS="$TARGET_CFLAGS -march=i386"
 fi
 
-if test "x$grub_cv_cc_target_clang" = xno && test "x$target_cpu" = xi386 && test "x$platform" != xemu && test "x$platform" != xefi; then
+if test "x$grub_cv_cc_target_clang" = xno && test "x$target_cpu" = xi386 && test "x$platform" != xefi; then
    TARGET_CFLAGS="$TARGET_CFLAGS -mrtd -mregparm=3"
 fi
-
-# on mips redirect cache flushing function to non-existant one.
-if test "x$target_cpu" = xmips || test "x$target_cpu" = xmipsel ; then
-  AC_CACHE_CHECK([whether -mflush-func=grub_red_herring works], [grub_cv_cc_mflush_func], [
-    CFLAGS="$TARGET_CFLAGS -mflush-func=grub_red_herring -Werror"
-    AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]], [[]])],
-        [grub_cv_cc_mflush_func=yes],
-	[grub_cv_cc_mflush_func=no])
-  ])
-
-  if test "x$grub_cv_cc_mflush_func" = xyes; then
-    TARGET_CFLAGS="$TARGET_CFLAGS -mflush-func=grub_red_herring"
-  fi
-fi
-
 
 # Force no alignment to save space on i386.
 if test "x$target_cpu" = xi386; then
@@ -830,7 +562,7 @@ if test "x$grub_cv_cc_freg_struct_return" = xyes; then
     TARGET_CFLAGS="$TARGET_CFLAGS -freg-struct-return"
 fi
 
-if ( test "x$target_cpu" = xi386 || test "x$target_cpu" = xx86_64 ) && test "x$platform" != xemu; then
+if test "x$target_cpu" = xi386 || test "x$target_cpu" = xx86_64; then
   # Some toolchains enable these features by default, but they need
   # registers that aren't set up properly in GRUB.
   TARGET_CFLAGS="$TARGET_CFLAGS -mno-mmx -mno-sse -mno-sse2 -mno-sse3 -mno-3dnow"
@@ -840,112 +572,39 @@ fi
 # that floats are a good fit to run instead of what's written in the code.
 # Given that floating point unit is disabled (if present to begin with)
 # when GRUB is running which may result in various hard crashes.
-if test x"$platform" != xemu ; then
-  AC_CACHE_CHECK([for options to get soft-float], grub_cv_target_cc_soft_float, [
-    grub_cv_target_cc_soft_float=no
-    if test "x$target_cpu" = xarm64; then
-       CFLAGS="$TARGET_CFLAGS -mgeneral-regs-only -Werror"
-       AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]], [[]])],
-		         [grub_cv_target_cc_soft_float="-mgeneral-regs-only"], [])
-    fi
-    if test "x$target_cpu" = xriscv32; then
-       CFLAGS="$TARGET_CFLAGS -march=rv32imac -mabi=ilp32 -Werror"
-       AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]], [[]])],
-		         [grub_cv_target_cc_soft_float="-march=rv32imac -mabi=ilp32"], [])
-    fi
-    if test "x$target_cpu" = xriscv64; then
-       CFLAGS="$TARGET_CFLAGS -march=rv64imac -mabi=lp64 -Werror"
-       AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]], [[]])],
-		         [grub_cv_target_cc_soft_float="-march=rv64imac -mabi=lp64"], [])
-    fi
-    if test "x$target_cpu" = xia64; then
-       CFLAGS="$TARGET_CFLAGS -mno-inline-float-divide -mno-inline-sqrt -Werror"
-       AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]], [[]])],
-		         [grub_cv_target_cc_soft_float="-mno-inline-float-divide -mno-inline-sqrt"], [])
-    fi
-    if test "x$target_cpu" = xsh4; then
-       CFLAGS="$TARGET_CFLAGS -m4-nofpu -Werror"
-       AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]], [[]])],
-		         [grub_cv_target_cc_soft_float="-m4-nofpu"], [])
-    fi
-    for cand in "-msoft-float -Xclang -msoft-float -Xclang -no-implicit-float" \
-		"-Xclang -msoft-float -Xclang -no-implicit-float" \
-		"-Xclang -msoft-float" "-msoft-float"; do
-      if test x"$grub_cv_target_cc_soft_float" != xno ; then
-        break
-      fi
-      CFLAGS="$TARGET_CFLAGS $cand -Werror"
+AC_CACHE_CHECK([for options to get soft-float], grub_cv_target_cc_soft_float, [
+  grub_cv_target_cc_soft_float=no
+  if test "x$target_cpu" = xarm64; then
+      CFLAGS="$TARGET_CFLAGS -mgeneral-regs-only -Werror"
       AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]], [[]])],
-		        [grub_cv_target_cc_soft_float="$cand"], [])
-    done
-  ])
-
-  if test x"$grub_cv_target_cc_soft_float" = xno ; then
-    AC_MSG_ERROR([could not force soft-float])
+                [grub_cv_target_cc_soft_float="-mgeneral-regs-only"], [])
   fi
+  for cand in "-msoft-float -Xclang -msoft-float -Xclang -no-implicit-float" \
+      "-Xclang -msoft-float -Xclang -no-implicit-float" \
+      "-Xclang -msoft-float" "-msoft-float"; do
+    if test x"$grub_cv_target_cc_soft_float" != xno ; then
+      break
+    fi
+    CFLAGS="$TARGET_CFLAGS $cand -Werror"
+    AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]], [[]])],
+              [grub_cv_target_cc_soft_float="$cand"], [])
+  done
+])
 
-  case x"$grub_cv_target_cc_soft_float" in
-    x*"-Xclang"*)
-      # A trick so that clang doesn't see it on link stаge
-      TARGET_CPPFLAGS="$TARGET_CPPFLAGS $grub_cv_target_cc_soft_float"
-      ;;
-    *)
-      TARGET_CFLAGS="$TARGET_CFLAGS $grub_cv_target_cc_soft_float"
-      ;;
-  esac
-  TARGET_CCASFLAGS="$TARGET_CCASFLAGS $grub_cv_target_cc_soft_float"
-
+if test x"$grub_cv_target_cc_soft_float" = xno ; then
+  AC_MSG_ERROR([could not force soft-float])
 fi
 
-if test x"$target_cpu" = xsparc64 ; then
-  AC_CACHE_CHECK([for options to reserve application registers], grub_cv_target_cc_mno_app_regs, [
-    grub_cv_target_cc_mno_app_regs=no
-    for cand in "-mllvm -sparc-reserve-app-registers" \
-		"-mno-app-regs"; do
-      if test x"$grub_cv_target_cc_mno_app_regs" != xno ; then
-        break
-      fi
-      CFLAGS="$TARGET_CFLAGS $cand -Werror"
-      CPPFLAGS="$TARGET_CPPFLAGS"
-      AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]], [[]])],
-		        [grub_cv_target_cc_mno_app_regs="$cand"], [])
-    done
-  ])
-
-  if test x"$grub_cv_target_cc_mno_app_regs" = xno ; then
-    AC_MSG_ERROR([could not reserve application registers])
-  fi
-  if test x"$grub_cv_target_cc_mno_app_regs" = x"-mllvm -sparc-reserve-app-registers" ; then
+case x"$grub_cv_target_cc_soft_float" in
+  x*"-Xclang"*)
     # A trick so that clang doesn't see it on link stаge
-    TARGET_CPPFLAGS="$TARGET_CPPFLAGS $grub_cv_target_cc_mno_app_regs"
-  else
-    TARGET_CFLAGS="$TARGET_CFLAGS $grub_cv_target_cc_mno_app_regs"
-  fi
-
-  AC_CACHE_CHECK([for no-relax options], grub_cv_target_cc_mno_relax, [
-    grub_cv_target_cc_mno_relax=no
-    for cand in "-mno-relax" "-Wl,--no-relax"; do
-      if test x"$grub_cv_target_cc_mno_relax" != xno ; then
-        break
-      fi
-      LDFLAGS="$TARGET_LDFLAGS $cand -nostdlib -static"
-      CFLAGS="$TARGET_CFLAGS -Werror"
-      AC_LINK_IFELSE([AC_LANG_PROGRAM([[
-	    asm (".globl start; start:");
-	    void __main (void);
-	    void __main (void) {}
-	    int main (void);
-	    ]], [[]])], [grub_cv_target_cc_mno_relax="$cand"], [])
-    done
-  ])
-  LDFLAGS="$TARGET_LDFLAGS"
-  CFLAGS="$TARGET_CFLAGS"
-
-  if test x"$grub_cv_target_cc_mno_relax" = xno ; then
-    AC_MSG_ERROR([could not find no-relax options])
-  fi
-  TARGET_LDFLAGS="$TARGET_LDFLAGS $grub_cv_target_cc_mno_relax"
-fi
+    TARGET_CPPFLAGS="$TARGET_CPPFLAGS $grub_cv_target_cc_soft_float"
+    ;;
+  *)
+    TARGET_CFLAGS="$TARGET_CFLAGS $grub_cv_target_cc_soft_float"
+    ;;
+esac
+TARGET_CCASFLAGS="$TARGET_CCASFLAGS $grub_cv_target_cc_soft_float"
 
 # By default, GCC 4.4 generates .eh_frame sections containing unwind
 # information in some cases where it previously did not. GRUB doesn't need
@@ -1028,27 +687,7 @@ fi
 CFLAGS="$TARGET_CFLAGS"
 
 
-if test x"$platform" = xemu ; then
-  TARGET_OBJ2ELF=
-  grub_cv_target_cc_link_format=
-  case "$host_os" in
-    *darwin* | *mac*)
-       grub_cv_target_cc_link_format="-arch,${target_cpu}"
-       TARGET_LDFLAGS="$TARGET_LDFLAGS -Wl,$grub_cv_target_cc_link_format"
-        ;;
-    *windows* | *cygwin* | *mingw*)
-      if test x${target_cpu} = xi386 ; then
-        grub_cv_target_cc_link_format=-mi386pe
-	TARGET_OBJ2ELF='./build-grub-pe2elf$(BUILD_EXEEXT)'
-      fi
-      if test x${target_cpu} = xx86_64 ; then
-        grub_cv_target_cc_link_format=-mi386pep
-	TARGET_OBJ2ELF='./build-grub-pep2elf$(BUILD_EXEEXT)'
-      fi
-      TARGET_LDFLAGS="$TARGET_LDFLAGS -Wl,$grub_cv_target_cc_link_format"
-      ;;
-  esac
-elif test x"$target_cpu" = xi386 || test x"$target_cpu" = xx86_64; then
+if test x"$target_cpu" = xi386 || test x"$target_cpu" = xx86_64; then
   AC_CACHE_CHECK([for target linking format], [grub_cv_target_cc_link_format], [
     grub_cv_target_cc_link_format=unknown
     for format in -melf_${target_cpu} -melf_${target_cpu}_fbsd -melf_${target_cpu}_obsd -melf_${target_cpu}_haiku -mi386pe -mi386pep -arch,${target_cpu}; do
@@ -1119,77 +758,13 @@ fi
 
 CFLAGS="$TARGET_CFLAGS"
 
-AC_ARG_ENABLE([efiemu],
-	      [AS_HELP_STRING([--enable-efiemu],
-                             [build and install the efiemu runtimes (default=guessed)])])
-if test x"$enable_efiemu" = xno ; then
-  efiemu_excuse="explicitly disabled"
-fi
-
-if test x"$grub_cv_target_cc_link_format" = x-mi386pe || test x"$grub_cv_target_cc_link_format" = x-mi386pep ; then
-  efiemu_excuse="not available on cygwin"
-fi
-if test x"$target_cpu" != xi386 ; then
-  efiemu_excuse="only available on i386"
-fi
-if test x"$platform" = xefi ; then
-  efiemu_excuse="not available on efi"
-fi
-
-if test x"$efiemu_excuse" = x ; then
-  AC_CACHE_CHECK([whether options required for efiemu work], grub_cv_cc_efiemu, [
-    CFLAGS="-m64 -nostdlib -O2 -mcmodel=large -mno-red-zone"
-    AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]], [[]])],
-		      [grub_cv_cc_efiemu=yes],
-		      [grub_cv_cc_efiemu=no])
-  ])
-  if test x$grub_cv_cc_efiemu = xno; then
-     efiemu_excuse="cannot compile with -m64 -mcmodel=large -mno-red-zone -nostdlib"
-  fi
-fi
-if test x"$efiemu_excuse" = x ; then
-  AC_CACHE_CHECK([for efiemu64 linking format], [grub_cv_target_cc_efiemu64_link_format], [
-    grub_cv_target_cc_efiemu64_link_format=unknown
-    for format in -melf_x86_64 -melf_x86_64_fbsd -melf_x86_64_obsd -melf_x86_64_haiku -arch,x86_64; do
-      CFLAGS="-m64 -nostdlib -O2 -mcmodel=large -mno-red-zone"
-      LDFLAGS="-m64 -Wl,$format -nostdlib -static"
-      AC_LINK_IFELSE([AC_LANG_PROGRAM([[
-      asm (".globl start; start:");
-      asm (".globl _start; _start:");
-      asm (".globl __start; __start:");
-      void __main (void);
-      void __main (void) {}
-      ]], [[]])], [flag=1], [flag=0])
-      if test x"$flag" = x1; then
-        grub_cv_target_cc_efiemu64_link_format="$format"
-	break
-      fi
-    done])
-  if test x"$grub_cv_target_cc_efiemu64_link_format" = xunknown; then
-    efiemu_excuse="no suitable link format for efiemu64 found"
-  else
-    EFIEMU64_LINK_FORMAT="-Wl,$grub_cv_target_cc_efiemu64_link_format"
-  fi
-fi
-if test x"$enable_efiemu" = xyes && test x"$efiemu_excuse" != x ; then
-  AC_MSG_ERROR([efiemu runtime was explicitly requested but can't be compiled ($efiemu_excuse)])
-fi
-if test x"$efiemu_excuse" = x ; then
-enable_efiemu=yes
-else
-enable_efiemu=no
-fi
-AC_SUBST([enable_efiemu])
-AC_SUBST([EFIEMU64_LINK_FORMAT])
-
-CFLAGS="$TARGET_CFLAGS"
 
 AC_SUBST(TARGET_LDFLAGS_OLDMAGIC)
 
 
 LDFLAGS="$TARGET_LDFLAGS"
 
-if test "$target_cpu" = x86_64 || test "$target_cpu" = sparc64 || test "$target_cpu" = riscv64 ; then
+if test "$target_cpu" = x86_64 ; then
   # Use large model to support 4G memory
   AC_CACHE_CHECK([whether option -mcmodel=large works], grub_cv_cc_mcmodel, [
     CFLAGS="$TARGET_CFLAGS -mcmodel=large"
@@ -1199,8 +774,6 @@ if test "$target_cpu" = x86_64 || test "$target_cpu" = sparc64 || test "$target_
   ])
   if test "x$grub_cv_cc_mcmodel" = xyes; then
     TARGET_CFLAGS="$TARGET_CFLAGS -mcmodel=large"
-  elif test "$target_cpu" = sparc64 || test "$target_cpu" = riscv64; then
-    TARGET_CFLAGS="$TARGET_CFLAGS -mcmodel=medany"
   fi
 fi
 
@@ -1393,9 +966,7 @@ fi
 
 # Set them to their new values for the tests below.
 CC="$TARGET_CC"
-if test x"$platform" = xemu ; then
-CFLAGS="$TARGET_CFLAGS -Wno-error"
-elif test "x$TARGET_APPLE_LINKER" = x1 ; then
+if test "x$TARGET_APPLE_LINKER" = x1 ; then
 CFLAGS="$TARGET_CFLAGS -nostdlib -static -Wno-error"
 else
 CFLAGS="$TARGET_CFLAGS -nostdlib -Wno-error"
@@ -1431,7 +1002,7 @@ grub_PROG_OBJCOPY_ABSOLUTE
 fi
 grub_PROG_LD_BUILD_ID_NONE
 if test "x$target_cpu" = xi386; then
-  if test "$platform" != emu && test "x$TARGET_APPLE_LINKER" != x1 ; then
+  if test "x$TARGET_APPLE_LINKER" != x1 ; then
     if test ! -z "$TARGET_IMG_LDSCRIPT"; then
       # Check symbols provided by linker script.
       CFLAGS="$TARGET_CFLAGS -nostdlib ${TARGET_IMG_LDFLAGS_AC} ${TARGET_IMG_BASE_LDOPT},0x8000"
@@ -1448,7 +1019,6 @@ grub_PROG_NM_DEFINED_ONLY
 AC_SUBST(TARGET_NMFLAGS_MINUS_P)
 AC_SUBST(TARGET_NMFLAGS_DEFINED_ONLY)
 
-if test "$platform" != emu; then
 AC_CACHE_CHECK([whether -nostdinc -isystem works], [grub_cv_cc_isystem], [
   SAVED_CPPFLAGS="$CPPFLAGS"
   CPPFLAGS="$TARGET_CPPFLAGS -nostdlib -nostdinc -isystem `$TARGET_CC -print-file-name=include`"
@@ -1462,7 +1032,6 @@ int va_arg_func (int fixed, va_list args);]], [[]])],
 
 if test x"$grub_cv_cc_isystem" = xyes ; then
   TARGET_CPPFLAGS="$TARGET_CPPFLAGS -nostdinc -isystem `$TARGET_CC -print-file-name=include`"
-fi
 fi
 
 AC_CACHE_CHECK([whether -Wtrampolines work], [grub_cv_cc_wtrampolines], [
@@ -1497,124 +1066,6 @@ if test x$enable_mm_debug = xyes; then
             [Define to 1 if you enable memory manager debugging.])
 fi
 
-AC_ARG_ENABLE([cache-stats],
-	      AS_HELP_STRING([--enable-cache-stats],
-                             [enable disk cache statistics collection]))
-
-if test x$enable_cache_stats = xyes; then
-  DISK_CACHE_STATS=1
-else
-  DISK_CACHE_STATS=0
-fi
-AC_SUBST([DISK_CACHE_STATS])
-
-AC_ARG_ENABLE([boot-time],
-	      AS_HELP_STRING([--enable-boot-time],
-                             [enable boot time statistics collection]))
-
-if test x$enable_boot_time = xyes; then
-  BOOT_TIME_STATS=1
-else
-  BOOT_TIME_STATS=0
-fi
-AC_SUBST([BOOT_TIME_STATS])
-
-AC_ARG_ENABLE([grub-emu-sdl],
-	      [AS_HELP_STRING([--enable-grub-emu-sdl],
-                             [build and install the `grub-emu' debugging utility with SDL support (default=guessed)])])
-
-AC_ARG_ENABLE([grub-emu-pci],
-	      [AS_HELP_STRING([--enable-grub-emu-pci],
-                             [build and install the `grub-emu' debugging utility with PCI support (potentially dangerous) (default=no)])])
-
-if test "$platform" = emu; then
-
-if test x"$enable_grub_emu_sdl" = xno ; then
-  grub_emu_sdl_excuse="explicitly disabled"
-fi
-[if [ x"$grub_emu_sdl_excuse" = x ]; then
-    # Check for libSDL libraries.]
-AC_CHECK_LIB([SDL], [SDL_Init], [LIBSDL="-lSDL"],
-    [grub_emu_sdl_excuse=["libSDL libraries are required to build \`grub-emu' with SDL support"]])
-    AC_SUBST([LIBSDL])
-[fi]
-
-[if [ x"$grub_emu_sdl_excuse" = x ]; then
-    # Check for headers.]
-    AC_CHECK_HEADERS([SDL/SDL.h], [],
-      [grub_emu_sdl_excuse=["libSDL header file is required to build \`grub-emu' with SDL support"]])
-[fi]
-
-if test x"enable_grub_emu_sdl" = xyes && test x"$grub_emu_sdl_excuse" != x ; then
-  AC_MSG_ERROR([SDL support for grub-emu was explicitly requested but can't be compiled ($grub_emu_sdl_excuse)])
-fi
-if test x"$grub_emu_sdl_excuse" = x ; then
-enable_grub_emu_sdl=yes
-else
-enable_grub_emu_sdl=no
-fi
-
-if test x"$enable_grub_emu_pci" != xyes ; then
-   grub_emu_pci_excuse="not enabled"
-fi
-
-[if [ x"$grub_emu_pci_excuse" = x ]; then
-      # Check for libpci libraries.]
-   AC_CHECK_LIB([pciaccess], [pci_system_init], [LIBPCIACCESS="-lpciaccess"],
-      [grub_emu_pci_excuse=["need libpciaccess library"]])
-    AC_SUBST([LIBPCIACCESS])
-[fi]
-[if [ x"$grub_emu_pci_excuse" = x ]; then
-    # Check for headers.]
-    AC_CHECK_HEADERS([pciaccess.h], [],
-      [grub_emu_pci_excuse=["need libpciaccess headers"]])
-[fi]
-
-if test x"$grub_emu_pci_excuse" = x ; then
-enable_grub_emu_pci=yes
-else
-
-enable_grub_emu_pci=no
-fi
-
-AC_SUBST([enable_grub_emu_sdl])
-AC_SUBST([enable_grub_emu_pci])
-
-else
-
-# Ignore --enable-emu-* if platform is not emu
-enable_grub_emu_sdl=no
-enable_grub_emu_pci=no
-fi
-
-enable_grub_mkfont=no
-grub_mkfont_excuse="explicitly disabled"
-
-unset ac_cv_header_ft2build_h
-
-if test x"$grub_mkfont_excuse" = x ; then
-  # Check for freetype libraries.
-  PKG_CHECK_MODULES([FREETYPE], [freetype2], [
-    SAVED_CPPFLAGS="$CPPFLAGS"
-    SAVED_LIBS="$LIBS"
-    CPPFLAGS="$CPPFLAGS $FREETYPE_CFLAGS"
-    LIBS="$LIBS $FREETYPE_LIBS"
-    AC_CHECK_HEADERS([ft2build.h], [],
-      [grub_mkfont_excuse=["need freetype2 headers"]])
-    AC_LINK_IFELSE([AC_LANG_CALL([], [FT_Load_Glyph])], [],
-      [grub_mkfont_excuse=["freetype2 library unusable"]])
-    CPPFLAGS="$SAVED_CPPFLAGS"
-    LIBS="$SAVED_LIBS"
-  ], [grub_mkfont_excuse=["need freetype2 library"]])
-fi
-
-if test x"$enable_grub_mkfont" = xyes && test x"$grub_mkfont_excuse" != x ; then
-  AC_MSG_ERROR([grub-mkfont was explicitly requested but can't be compiled ($grub_mkfont_excuse)])
-fi
-enable_grub_mkfont=no
-
-AC_SUBST([enable_grub_mkfont])
-
 SAVED_CC="$CC"
 SAVED_CPP="$CPP"
 SAVED_CFLAGS="$CFLAGS"
@@ -1641,156 +1092,11 @@ AC_SUBST([BUILD_SIZEOF_LONG])
 AC_SUBST([BUILD_SIZEOF_VOID_P])
 AC_SUBST([BUILD_WORDS_BIGENDIAN])
 
-if test x"$enable_build_grub_mkfont" = xyes && test x"$grub_build_mkfont_excuse" != x ; then
-  AC_MSG_ERROR([build-grub-mkfont was explicitly requested but can't be compiled ($grub_build_mkfont_excuse)])
-fi
-enable_build_grub_mkfont=no
-
-if test x"$enable_build_grub_mkfont" = xno && ( test "x$platform" = xqemu || test "x$platform" = xloongson || test "x$platform" = xqemu_mips || test "x$platform" = xcoreboot ); then
-  if test x"$grub_build_mkfont_excuse" = x ; then
-    AC_MSG_ERROR([qemu, coreboot and loongson ports need build-time grub-mkfont])
-  else
-    AC_MSG_ERROR([qemu, coreboot and loongson ports need build-time grub-mkfont ($grub_build_mkfont_excuse)])
-  fi
-fi
-
 CC="$SAVED_CC"
 CPP="$SAVED_CPP"
 CFLAGS="$SAVED_CFLAGS"
 CPPFLAGS="$SAVED_CPPFLAGS"
 LDFLAGS="$SAVED_LDFLAGS"
-
-
-DJVU_FONT_SOURCE=
-
-starfield_excuse=
-
-enable_grub_themes=no
-starfield_excuse=explicitly disabled
-
-if test x"$starfield_excuse" = x && test x"$enable_build_grub_mkfont" = xno ; then
-  starfield_excuse="No build-time grub-mkfont"
-fi
-
-if test x"$starfield_excuse" = x; then
-   for ext in pcf pcf.gz bdf bdf.gz ttf ttf.gz; do
-     for dir in . /usr/src /usr/share/fonts/X11/misc /usr/share/fonts/truetype/ttf-dejavu /usr/share/fonts/dejavu /usr/share/fonts/truetype; do
-        if test -f "$dir/DejaVuSans.$ext"; then
-          DJVU_FONT_SOURCE="$dir/DejaVuSans.$ext"
-          break 2
-        fi
-     done
-   done
-
-   if test "x$DJVU_FONT_SOURCE" = x; then
-     starfield_excuse="No DejaVu found"
-   fi
-fi
-
-if test x"$enable_grub_themes" = xyes &&  test x"$starfield_excuse" != x; then
-   AC_MSG_ERROR([themes were explicitly requested but requirements are not satisfied ($starfield_excuse)])
-fi
-
-AC_SUBST([DJVU_FONT_SOURCE])
-
-FONT_SOURCE=
-
-for ext in pcf pcf.gz bdf bdf.gz ttf ttf.gz; do
-  for dir in . /usr/src /usr/share/fonts/X11/misc /usr/share/fonts/unifont /usr/share/fonts/uni /usr/share/fonts/truetype/unifont /usr/share/fonts/misc; do
-    if test -f "$dir/unifont.$ext"; then
-      md5="$(md5sum "$dir/unifont.$ext"|awk '{ print $1; }')"
-      # PCF and BDF from version 6.3 isn't hanled properly by libfreetype.
-      if test "$md5" = 0a54834d2788c83886a3e1785a6a1e61 || test "$md5" = 28f2565c7a41d8d407e2551159385edb || test "$md5" = dae5e588461b3b92b87b6ffee734f936 || test "$md5" = 4a3d687aa5bb329ed05f4263a1016791 ; then
-        continue
-      fi
-      FONT_SOURCE="$dir/unifont.$ext"
-      break 2
-    fi
-  done
-done
-
-if test x"$enable_build_grub_mkfont" = xno ; then
-  FONT_SOURCE=
-fi
-
-if test "x$FONT_SOURCE" = x && ( test "x$platform" = xqemu || test "x$platform" = xloongson || test "x$platform" = xqemu_mips || test "x$platform" = xcoreboot ); then
-  if test x"$grub_build_mkfont_excuse" = x ; then
-    AC_MSG_ERROR([qemu, coreboot and loongson ports need unifont])
-  else
-    AC_MSG_ERROR([qemu, coreboot and loongson ports need unifont ($grub_build_mkfont_excuse)])
-  fi
-fi
-
-AC_SUBST([FONT_SOURCE])
-
-if test x"$FONT_SOURCE" = x &&  test x"$DJVU_FONT_SOURCE" = x && test x"$grub_build_mkfont_excuse" = x; then
-  grub_build_mkfont_excuse="no fonts"
-fi
-
-
-AC_ARG_ENABLE([grub-mount],
-	      [AS_HELP_STRING([--enable-grub-mount],
-                             [build and install the `grub-mount' utility (default=guessed)])])
-enable_grub_mount=no
-grub_mount_excuse="explicitly disabled"
-
-if test x"$grub_mount_excuse" = x ; then
-  AC_CHECK_LIB([fuse], [fuse_main_real], [],
-               [grub_mount_excuse="need FUSE library"])
-fi
-
-if test x"$grub_mount_excuse" = x ; then
-  # Check for fuse headers.
-  SAVED_CPPFLAGS="$CPPFLAGS"
-  CPPFLAGS="$CPPFLAGS -DFUSE_USE_VERSION=26"
-  AC_CHECK_HEADERS([fuse/fuse.h], [],
-  	[grub_mount_excuse=["need FUSE headers"]])
-  CPPFLAGS="$SAVED_CPPFLAGS"
-fi
-
-if test x"$enable_grub_mount" = xyes && test x"$grub_mount_excuse" != x ; then
-  AC_MSG_ERROR([grub-mount was explicitly requested but can't be compiled ($grub_mount_excuse)])
-fi
-if test x"$grub_mount_excuse" = x ; then
-enable_grub_mount=yes
-else
-enable_grub_mount=no
-fi
-AC_SUBST([enable_grub_mount])
-
-AC_ARG_ENABLE([device-mapper],
-              [AS_HELP_STRING([--enable-device-mapper],
-                              [enable Linux device-mapper support (default=guessed)])])
-if test x"$enable_device_mapper" = xno ; then
-  device_mapper_excuse="explicitly disabled"
-fi
-
-if test x"$device_mapper_excuse" = x ; then
-  # Check for device-mapper header.
-  AC_CHECK_HEADER([libdevmapper.h], [],
-               [device_mapper_excuse="need libdevmapper header"])
-fi
-
-if test x"$device_mapper_excuse" = x ; then
-  # Check for device-mapper library.
-  AC_CHECK_LIB([devmapper], [dm_task_create], [],
-               [device_mapper_excuse="need devmapper library"])
-fi
-
-if test x"$device_mapper_excuse" = x ; then
-  # Check for device-mapper library.
-  AC_CHECK_LIB([devmapper], [dm_log_with_errno_init],
-               [],
-               [device_mapper_excuse="need devmapper library"])
-fi
-
-if test x"$device_mapper_excuse" = x ; then
-   LIBDEVMAPPER="-ldevmapper"
-   AC_DEFINE([HAVE_DEVICE_MAPPER], [1],
-             [Define to 1 if you have the devmapper library.])
-fi
-
-AC_SUBST([LIBDEVMAPPER])
 
 LIBGEOM=
 if test x$host_kernel = xkfreebsd; then
@@ -1801,80 +1107,7 @@ fi
 
 AC_SUBST([LIBGEOM])
 
-AC_ARG_ENABLE([liblzma],
-              [AS_HELP_STRING([--enable-liblzma],
-                              [enable liblzma integration (default=guessed)])])
-if test x"$enable_liblzma" = xno ; then
-  liblzma_excuse="explicitly disabled"
-fi
-
-if test x"$liblzma_excuse" = x ; then
-AC_CHECK_LIB([lzma], [lzma_code],
-             [],[liblzma_excuse="need lzma library"])
-fi
-if test x"$liblzma_excuse" = x ; then
-AC_CHECK_HEADER([lzma.h], [], [liblzma_excuse="need lzma header"])
-fi
-
-if test x"$enable_liblzma" = xyes && test x"$liblzma_excuse" != x ; then
-  AC_MSG_ERROR([liblzma support was explicitly requested but requirements are not satisfied ($liblzma_excuse)])
-fi
-
-
-if test x"$liblzma_excuse" = x ; then
-   LIBLZMA="-llzma"
-   AC_DEFINE([USE_LIBLZMA], [1],
-   	     [Define to 1 if you have the LZMA library.])
-fi
-
-AC_SUBST([LIBLZMA])
-
-AC_ARG_ENABLE([libzfs],
-              [AS_HELP_STRING([--enable-libzfs],
-                              [enable libzfs integration (default=guessed)])])
-if test x"$enable_libzfs" = xno ; then
-  libzfs_excuse="explicitly disabled"
-fi
-
-if test x"$libzfs_excuse" = x ; then
-  # Only check for system headers if libzfs support has not been disabled.
-  AC_CHECK_HEADERS(libzfs.h libnvpair.h)
-fi
-
-if test x"$libzfs_excuse" = x ; then
-  AC_CHECK_LIB([zfs], [libzfs_init],
-               [],
-               [libzfs_excuse="need zfs library"])
-fi
-
-if test x"$libzfs_excuse" = x ; then
-  AC_CHECK_LIB([nvpair], [nvlist_lookup_string],
-               [],
-               [libzfs_excuse="need nvpair library"])
-fi
-
-if test x"$enable_libzfs" = xyes && test x"$libzfs_excuse" != x ; then
-  AC_MSG_ERROR([libzfs support was explicitly requested but requirements are not satisfied ($libzfs_excuse)])
-fi
-
-if test x"$libzfs_excuse" = x ; then
-  # We need both libzfs and libnvpair for a successful build.
-  LIBZFS="-lzfs"
-  AC_DEFINE([HAVE_LIBZFS], [1],
-            [Define to 1 if you have the ZFS library.])
-  LIBNVPAIR="-lnvpair"
-  AC_DEFINE([HAVE_LIBNVPAIR], [1],
-            [Define to 1 if you have the NVPAIR library.])
-fi
-
-AC_SUBST([LIBZFS])
-AC_SUBST([LIBNVPAIR])
-
 LIBS=""
-
-AC_SUBST([FONT_SOURCE])
-AS_IF([test x$target_cpu = xi386 -a x$platform = xqemu],
-	    [AC_SUBST([GRUB_BOOT_MACHINE_LINK_ADDR], 0xffe00)])
 
 AC_SUBST(HAVE_ASM_USCORE)
 AC_SUBST(BSS_START_SYMBOL)
@@ -1933,38 +1166,9 @@ AC_SUBST(BUILD_LIBM)
 # Automake conditionals
 #
 
-AM_CONDITIONAL([COND_real_platform], [test x$platform != xnone])
-AM_CONDITIONAL([COND_emu], [test x$platform = xemu])
-AM_CONDITIONAL([COND_i386_pc], [test x$target_cpu = xi386 -a x$platform = xpc])
 AM_CONDITIONAL([COND_i386_efi], [test x$target_cpu = xi386 -a x$platform = xefi])
-AM_CONDITIONAL([COND_ia64_efi], [test x$target_cpu = xia64 -a x$platform = xefi])
-AM_CONDITIONAL([COND_i386_qemu], [test x$target_cpu = xi386 -a x$platform = xqemu])
-AM_CONDITIONAL([COND_i386_ieee1275], [test x$target_cpu = xi386 -a x$platform = xieee1275])
-AM_CONDITIONAL([COND_i386_coreboot], [test x$target_cpu = xi386 -a x$platform = xcoreboot])
 AM_CONDITIONAL([COND_i386_multiboot], [test x$target_cpu = xi386 -a x$platform = xmultiboot])
 AM_CONDITIONAL([COND_x86_64_efi], [test x$target_cpu = xx86_64 -a x$platform = xefi])
-AM_CONDITIONAL([COND_i386_xen], [test x$target_cpu = xi386 -a x$platform = xxen])
-AM_CONDITIONAL([COND_i386_xen_pvh], [test x$target_cpu = xi386 -a x$platform = xxen_pvh])
-AM_CONDITIONAL([COND_x86_64_xen], [test x$target_cpu = xx86_64 -a x$platform = xxen])
-AM_CONDITIONAL([COND_mips_loongson], [test x$target_cpu = xmipsel -a x$platform = xloongson])
-AM_CONDITIONAL([COND_mips_qemu_mips], [test "(" x$target_cpu = xmips -o x$target_cpu = xmipsel ")"  -a x$platform = xqemu_mips])
-AM_CONDITIONAL([COND_mips_arc], [test "(" x$target_cpu = xmips -o x$target_cpu = xmipsel ")"  -a x$platform = xarc])
-AM_CONDITIONAL([COND_sparc64_ieee1275], [test x$target_cpu = xsparc64 -a x$platform = xieee1275])
-AM_CONDITIONAL([COND_sparc64_emu], [test x$target_cpu = xsparc64 -a x$platform = xemu])
-AM_CONDITIONAL([COND_powerpc_ieee1275], [test x$target_cpu = xpowerpc -a x$platform = xieee1275])
-AM_CONDITIONAL([COND_mips], [test x$target_cpu = xmips -o x$target_cpu = xmipsel])
-AM_CONDITIONAL([COND_mipsel], [test x$target_cpu = xmipsel])
-AM_CONDITIONAL([COND_mipseb], [test x$target_cpu = xmips])
-AM_CONDITIONAL([COND_arm], [test x$target_cpu = xarm ])
-AM_CONDITIONAL([COND_arm_uboot], [test x$target_cpu = xarm -a x$platform = xuboot])
-AM_CONDITIONAL([COND_arm_coreboot], [test x$target_cpu = xarm -a x$platform = xcoreboot])
-AM_CONDITIONAL([COND_arm_efi], [test x$target_cpu = xarm -a x$platform = xefi])
-AM_CONDITIONAL([COND_arm64], [test x$target_cpu = xarm64 ])
-AM_CONDITIONAL([COND_arm64_efi], [test x$target_cpu = xarm64 -a x$platform = xefi])
-AM_CONDITIONAL([COND_riscv32], [test x$target_cpu = xriscv32 ])
-AM_CONDITIONAL([COND_riscv64], [test x$target_cpu = xriscv64 ])
-AM_CONDITIONAL([COND_riscv32_efi], [test x$target_cpu = xriscv32 -a x$platform = xefi])
-AM_CONDITIONAL([COND_riscv64_efi], [test x$target_cpu = xriscv64 -a x$platform = xefi])
 
 AM_CONDITIONAL([COND_HOST_HURD], [test x$host_kernel = xhurd])
 AM_CONDITIONAL([COND_HOST_LINUX], [test x$host_kernel = xlinux])
@@ -1974,28 +1178,11 @@ AM_CONDITIONAL([COND_HOST_KFREEBSD], [test x$host_kernel = xkfreebsd])
 AM_CONDITIONAL([COND_HOST_XNU], [test x$host_kernel = xxnu])
 AM_CONDITIONAL([COND_HOST_ILLUMOS], [test x$host_kernel = xillumos])
 
-AM_CONDITIONAL([COND_MAN_PAGES], [test x$cross_compiling = xno -a x$HELP2MAN != x])
-AM_CONDITIONAL([COND_GRUB_EMU_SDL], [test x$enable_grub_emu_sdl = xyes])
-AM_CONDITIONAL([COND_GRUB_EMU_PCI], [test x$enable_grub_emu_pci = xyes])
-AM_CONDITIONAL([COND_GRUB_MKFONT], [test x$enable_grub_mkfont = xyes])
-AM_CONDITIONAL([COND_GRUB_MOUNT], [test x$enable_grub_mount = xyes])
-AM_CONDITIONAL([COND_HAVE_FONT_SOURCE], [test x$FONT_SOURCE != x])
-if test x$FONT_SOURCE != x ; then
-   HAVE_FONT_SOURCE=1
-else
-   HAVE_FONT_SOURCE=0
-fi
-AC_SUBST(HAVE_FONT_SOURCE)
 AM_CONDITIONAL([COND_APPLE_LINKER], [test x$TARGET_APPLE_LINKER = x1])
-AM_CONDITIONAL([COND_ENABLE_EFIEMU], [test x$enable_efiemu = xyes])
-AM_CONDITIONAL([COND_ENABLE_CACHE_STATS], [test x$DISK_CACHE_STATS = x1])
-AM_CONDITIONAL([COND_ENABLE_BOOT_TIME_STATS], [test x$BOOT_TIME_STATS = x1])
 
 AM_CONDITIONAL([COND_HAVE_CXX], [test x$HAVE_CXX = xyes])
 
 AM_CONDITIONAL([COND_HAVE_ASM_USCORE], [test x$HAVE_ASM_USCORE = x1])
-AM_CONDITIONAL([COND_STARFIELD], [test "x$starfield_excuse" = x])
-AM_CONDITIONAL([COND_HAVE_EXEC], [test "x$have_exec" = xy])
 
 test "x$prefix" = xNONE && prefix="$ac_default_prefix"
 test "x$exec_prefix" = xNONE && exec_prefix="${prefix}"
@@ -2011,38 +1198,23 @@ AC_DEFINE_UNQUOTED(GRUB_SYSCONFDIR, "$grub_sysconfdir", [Configuration dir])
 
 
 # Output files.
-if test "$platform" != none; then
-  cpudir="${target_cpu}"
-  if test x${cpudir} = xmipsel; then
-    cpudir=mips;
-  fi
-  grub_CHECK_LINK_DIR
-  if test x"$link_dir" = xyes ; then
-    AC_CONFIG_LINKS([include/grub/cpu:include/grub/$cpudir])
-    if test "$platform" != emu ; then
-      AC_CONFIG_LINKS([include/grub/machine:include/grub/$cpudir/$platform])
-    fi
-  else
-    mkdir -p include/grub 2>/dev/null
-    rm -rf include/grub/cpu
-    cp -rp $srcdir/include/grub/$cpudir include/grub/cpu 2>/dev/null
-    if test "$platform" != emu ; then
-      rm -rf include/grub/machine
-      cp -rp $srcdir/include/grub/$cpudir/$platform include/grub/machine 2>/dev/null
-    fi
-  fi
+cpudir="${target_cpu}"
+grub_CHECK_LINK_DIR
+if test x"$link_dir" = xyes ; then
+  AC_CONFIG_LINKS([include/grub/cpu:include/grub/$cpudir])
+  AC_CONFIG_LINKS([include/grub/machine:include/grub/$cpudir/$platform])
 else
-  # Just enough to stop the compiler failing with -I$(srcdir)/include.
-  mkdir -p include 2>/dev/null
-  rm -rf include/grub/cpu include/grub/machine
+  mkdir -p include/grub 2>/dev/null
+  rm -rf include/grub/cpu
+  cp -rp $srcdir/include/grub/$cpudir include/grub/cpu 2>/dev/null
+  if test "$platform" != emu ; then
+    rm -rf include/grub/machine
+    cp -rp $srcdir/include/grub/$cpudir/$platform include/grub/machine 2>/dev/null
+  fi
 fi
 
 AC_CONFIG_FILES([Makefile])
 AC_CONFIG_FILES([grub-core/Makefile])
-AC_CONFIG_FILES([grub-core/lib/gnulib/Makefile])
-AC_CONFIG_FILES([po/Makefile.in])
-AC_CONFIG_FILES([docs/Makefile])
-AC_CONFIG_FILES([util/bash-completion.d/Makefile])
 AC_CONFIG_FILES([stamp-h], [echo timestamp > stamp-h])
 AC_CONFIG_FILES([config.h])
 
@@ -2051,81 +1223,10 @@ AC_OUTPUT
 echo "*******************************************************"
 echo GRUB2 will be compiled with following components:
 echo Platform: "$target_cpu"-"$platform"
-if [ x"$platform" = xemu ]; then
-if [ x"$grub_emu_sdl_excuse" = x ]; then
-echo SDL support for grub-emu: Yes
-else
-echo SDL support for grub-emu: No "($grub_emu_sdl_excuse)"
-fi
-if [ x"$grub_emu_pci_excuse" = x ]; then
-echo PCI support for grub-emu: Yes
-else
-echo PCI support for grub-emu: No "($grub_emu_pci_excuse)"
-fi
-fi
-if test x"$device_mapper_excuse" = x ; then
-echo With devmapper support: Yes
-else
-echo With devmapper support: No "($device_mapper_excuse)"
-fi
 if [ x"$enable_mm_debug" = xyes ]; then
 echo With memory debugging: Yes
 else
 echo With memory debugging: No
-fi
-if [ x"$enable_cache_stats" = xyes ]; then
-echo With disk cache statistics: Yes
-else
-echo With disk cache statistics: No
-fi
-
-if [ x"$enable_boot_time" = xyes ]; then
-echo With boot time statistics: Yes
-else
-echo With boot time statistics: No
-fi
-
-if [ x"$efiemu_excuse" = x ]; then
-echo efiemu runtime: Yes
-else
-echo efiemu runtime: No "($efiemu_excuse)"
-fi
-if [ x"$grub_mkfont_excuse" = x ]; then
-echo grub-mkfont: Yes
-else
-echo grub-mkfont: No "($grub_mkfont_excuse)"
-fi
-if [ x"$grub_mount_excuse" = x ]; then
-echo grub-mount: Yes
-else
-echo grub-mount: No "($grub_mount_excuse)"
-fi
-if [ x"$starfield_excuse" = x ]; then
-echo starfield theme: Yes
-echo With DejaVuSans font from $DJVU_FONT_SOURCE
-else
-echo starfield theme: No "($starfield_excuse)"
-fi
-if [ x"$libzfs_excuse" = x ]; then
-echo With libzfs support: Yes
-else
-echo With libzfs support: No "($libzfs_excuse)"
-fi
-if [ x"$grub_build_mkfont_excuse" = x ]; then
-  echo Build-time grub-mkfont: Yes
-  if test "x$FONT_SOURCE" = x ; then
-    echo "Without unifont"
-  else
-    echo "With unifont from $FONT_SOURCE"
-  fi
-else
-  echo Build-time grub-mkfont: No "($grub_build_mkfont_excuse)"
-  echo "Without unifont (no build-time grub-mkfont)"
-fi
-if test x"$liblzma_excuse" != x ; then
-echo "Without liblzma (no support for XZ-compressed mips images) ($liblzma_excuse)"
-else
-echo "With liblzma from $LIBLZMA (support for XZ-compressed mips images)"
 fi
 if test "x$enable_stack_protector" != xno; then
 echo "With stack smashing protector: Yes"

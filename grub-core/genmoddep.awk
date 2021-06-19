@@ -65,9 +65,6 @@ END {
       depcount[mod]++
       total_depcount++
     }
-    if (mod == "all_video") {
-	continue;
-    }
     printf "%s:%s\n", mod, modlist;
   }
 
@@ -94,9 +91,4 @@ END {
 	  exit 1
       }
   }
-  modlist = ""
-  while (getline <"video.lst") {
-      modlist = modlist " " $1;
-  }
-  printf "all_video:%s\n", modlist;
 }

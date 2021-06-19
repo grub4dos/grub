@@ -26,70 +26,32 @@ import re
 # This is the python script used to generate Makefile.*.am
 #
 
-GRUB_PLATFORMS = [ "emu", "i386_pc", "i386_efi", "i386_qemu", "i386_coreboot",
-                   "i386_multiboot", "i386_ieee1275", "x86_64_efi",
-                   "i386_xen", "x86_64_xen", "i386_xen_pvh",
-                   "mips_loongson", "sparc64_ieee1275",
-                   "powerpc_ieee1275", "mips_arc", "ia64_efi",
-                   "mips_qemu_mips", "arm_uboot", "arm_efi", "arm64_efi",
-                   "arm_coreboot", "riscv32_efi", "riscv64_efi" ]
+GRUB_PLATFORMS = [ "i386_efi",
+                   "i386_multiboot", "x86_64_efi" ]
 
 GROUPS = {}
 
 GROUPS["common"]   = GRUB_PLATFORMS[:]
 
 # Groups based on CPU
-GROUPS["i386"]     = [ "i386_pc", "i386_efi", "i386_qemu", "i386_coreboot", "i386_multiboot", "i386_ieee1275" ]
+GROUPS["i386"]     = [ "i386_pc", "i386_efi", "i386_multiboot" ]
 GROUPS["x86_64"]   = [ "x86_64_efi" ]
 GROUPS["x86"]      = GROUPS["i386"] + GROUPS["x86_64"]
-GROUPS["mips"]     = [ "mips_loongson", "mips_qemu_mips", "mips_arc" ]
-GROUPS["sparc64"]  = [ "sparc64_ieee1275" ]
-GROUPS["powerpc"]  = [ "powerpc_ieee1275" ]
-GROUPS["arm"]      = [ "arm_uboot", "arm_efi", "arm_coreboot" ]
-GROUPS["arm64"]    = [ "arm64_efi" ]
-GROUPS["riscv32"]  = [ "riscv32_efi" ]
-GROUPS["riscv64"]  = [ "riscv64_efi" ]
 
 # Groups based on firmware
-GROUPS["efi"]  = [ "i386_efi", "x86_64_efi", "ia64_efi", "arm_efi", "arm64_efi",
-		   "riscv32_efi", "riscv64_efi" ]
-GROUPS["ieee1275"]   = [ "i386_ieee1275", "sparc64_ieee1275", "powerpc_ieee1275" ]
-GROUPS["uboot"] = [ "arm_uboot" ]
-GROUPS["xen"]  = [ "i386_xen", "x86_64_xen" ]
-GROUPS["coreboot"]  = [ "i386_coreboot", "arm_coreboot" ]
-
-# emu is a special case so many core functionality isn't needed on this platform
-GROUPS["noemu"]   = GRUB_PLATFORMS[:]; GROUPS["noemu"].remove("emu")
+GROUPS["efi"]  = [ "i386_efi", "x86_64_efi" ]
 
 # Groups based on hardware features
-GROUPS["cmos"] = GROUPS["x86"][:] + ["mips_loongson", "mips_qemu_mips",
-                                     "sparc64_ieee1275", "powerpc_ieee1275"]
+GROUPS["cmos"] = GROUPS["x86"][:]
 GROUPS["cmos"].remove("i386_efi"); GROUPS["cmos"].remove("x86_64_efi");
-GROUPS["pci"]      = GROUPS["x86"] + ["mips_loongson"]
-GROUPS["usb"]      = GROUPS["pci"] + ["arm_coreboot"]
-
-# If gfxterm is main output console integrate it into kernel
-GROUPS["videoinkernel"] = ["mips_loongson", "i386_coreboot", "arm_coreboot" ]
-GROUPS["videomodules"]   = GRUB_PLATFORMS[:];
-for i in GROUPS["videoinkernel"]: GROUPS["videomodules"].remove(i)
-
-# Similar for terminfo
-GROUPS["terminfoinkernel"] = [ "emu", "mips_loongson", "mips_arc", "mips_qemu_mips", "i386_xen_pvh" ] + GROUPS["xen"] + GROUPS["ieee1275"] + GROUPS["uboot"];
-GROUPS["terminfomodule"]   = GRUB_PLATFORMS[:];
-for i in GROUPS["terminfoinkernel"]: GROUPS["terminfomodule"].remove(i)
-
-# Flattened Device Trees (FDT)
-GROUPS["fdt"] = [ "arm64_efi", "arm_uboot", "arm_efi", "riscv32_efi", "riscv64_efi" ]
+GROUPS["pci"]      = GROUPS["x86"]
+GROUPS["usb"]      = GROUPS["pci"]
 
 # Needs software helpers for division
 # Must match GRUB_DIVISION_IN_SOFTWARE in misc.h
-GROUPS["softdiv"] = GROUPS["arm"] + ["ia64_efi"] + GROUPS["riscv32"]
+GROUPS["softdiv"] = []
 GROUPS["no_softdiv"]   = GRUB_PLATFORMS[:]
 for i in GROUPS["softdiv"]: GROUPS["no_softdiv"].remove(i)
-
-# Miscellaneous groups scheduled to disappear in future
-GROUPS["i386_coreboot_multiboot_qemu"] = ["i386_coreboot", "i386_multiboot", "i386_qemu"]
-GROUPS["nopc"] = GRUB_PLATFORMS[:]; GROUPS["nopc"].remove("i386_pc")
 
 #
 # Create platform => groups reverse map, where groups covering that

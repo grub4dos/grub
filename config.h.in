@@ -10,8 +10,8 @@
 #define HAVE_MEMMOVE 1
 
 /* Define to 1 to enable disk cache statistics.  */
-#define DISK_CACHE_STATS @DISK_CACHE_STATS@
-#define BOOT_TIME_STATS @BOOT_TIME_STATS@
+#define DISK_CACHE_STATS 0
+#define BOOT_TIME_STATS 0
 
 /* We don't need those.  */
 #define MINILZO_CFG_SKIP_LZO_PTR 1
@@ -37,7 +37,7 @@
 #elif defined (GRUB_UTIL) || !defined (GRUB_MACHINE)
 #include <config-util.h>
 #else
-#define HAVE_FONT_SOURCE @HAVE_FONT_SOURCE@
+#define HAVE_FONT_SOURCE 0
 /* Define if C symbols get an underscore after compilation. */
 #define HAVE_ASM_USCORE @HAVE_ASM_USCORE@
 /* Define it to one of __bss_start, edata and _edata.  */
