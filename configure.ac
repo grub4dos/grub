@@ -1587,12 +1587,8 @@ enable_grub_emu_sdl=no
 enable_grub_emu_pci=no
 fi
 
-AC_ARG_ENABLE([grub-mkfont],
-	      [AS_HELP_STRING([--enable-grub-mkfont],
-                             [build and install the `grub-mkfont' utility (default=guessed)])])
-if test x"$enable_grub_mkfont" = xno ; then
-  grub_mkfont_excuse="explicitly disabled"
-fi
+enable_grub_mkfont=no
+grub_mkfont_excuse="explicitly disabled"
 
 unset ac_cv_header_ft2build_h
 
@@ -1615,11 +1611,8 @@ fi
 if test x"$enable_grub_mkfont" = xyes && test x"$grub_mkfont_excuse" != x ; then
   AC_MSG_ERROR([grub-mkfont was explicitly requested but can't be compiled ($grub_mkfont_excuse)])
 fi
-if test x"$grub_mkfont_excuse" = x ; then
-enable_grub_mkfont=yes
-else
 enable_grub_mkfont=no
-fi
+
 AC_SUBST([enable_grub_mkfont])
 
 SAVED_CC="$CC"
@@ -1648,33 +1641,11 @@ AC_SUBST([BUILD_SIZEOF_LONG])
 AC_SUBST([BUILD_SIZEOF_VOID_P])
 AC_SUBST([BUILD_WORDS_BIGENDIAN])
 
-if test x"$grub_build_mkfont_excuse" = x ; then
-  # Check for freetype libraries.
-  SAVED_PKG_CONFIG="$PKG_CONFIG"
-  test -z "$BUILD_PKG_CONFIG" || PKG_CONFIG="$BUILD_PKG_CONFIG"
-  PKG_CHECK_MODULES([BUILD_FREETYPE], [freetype2], [
-    SAVED_CPPFLAGS_2="$CPPFLAGS"
-    SAVED_LIBS="$LIBS"
-    CPPFLAGS="$CPPFLAGS $BUILD_FREETYPE_CFLAGS"
-    LIBS="$LIBS $BUILD_FREETYPE_LIBS"
-    AC_CHECK_HEADERS([ft2build.h], [],
-      [grub_build_mkfont_excuse=["need freetype2 headers"]])
-    AC_LINK_IFELSE([AC_LANG_CALL([], [FT_Load_Glyph])], [],
-      [grub_build_mkfont_excuse=["freetype2 library unusable"]])
-    LIBS="$SAVED_LIBS"
-    CPPFLAGS="$SAVED_CPPFLAGS_2"
-  ], [grub_build_mkfont_excuse=["need freetype2 library"]])
-  PKG_CONFIG="$SAVED_PKG_CONFIG"
-fi
-
 if test x"$enable_build_grub_mkfont" = xyes && test x"$grub_build_mkfont_excuse" != x ; then
   AC_MSG_ERROR([build-grub-mkfont was explicitly requested but can't be compiled ($grub_build_mkfont_excuse)])
 fi
-if test x"$grub_build_mkfont_excuse" = x ; then
-  enable_build_grub_mkfont=yes
-else
-  enable_build_grub_mkfont=no
-fi
+enable_build_grub_mkfont=no
+
 if test x"$enable_build_grub_mkfont" = xno && ( test "x$platform" = xqemu || test "x$platform" = xloongson || test "x$platform" = xqemu_mips || test "x$platform" = xcoreboot ); then
   if test x"$grub_build_mkfont_excuse" = x ; then
     AC_MSG_ERROR([qemu, coreboot and loongson ports need build-time grub-mkfont])
@@ -1694,12 +1665,8 @@ DJVU_FONT_SOURCE=
 
 starfield_excuse=
 
-AC_ARG_ENABLE([grub-themes],
-	      [AS_HELP_STRING([--enable-grub-themes],
-                             [build and install GRUB themes (default=guessed)])])
-if test x"$enable_grub_themes" = xno ; then
-  starfield_excuse="explicitly disabled"
-fi
+enable_grub_themes=no
+starfield_excuse=explicitly disabled
 
 if test x"$starfield_excuse" = x && test x"$enable_build_grub_mkfont" = xno ; then
   starfield_excuse="No build-time grub-mkfont"
@@ -1764,9 +1731,8 @@ fi
 AC_ARG_ENABLE([grub-mount],
 	      [AS_HELP_STRING([--enable-grub-mount],
                              [build and install the `grub-mount' utility (default=guessed)])])
-if test x"$enable_grub_mount" = xno ; then
-  grub_mount_excuse="explicitly disabled"
-fi
+enable_grub_mount=no
+grub_mount_excuse="explicitly disabled"
 
 if test x"$grub_mount_excuse" = x ; then
   AC_CHECK_LIB([fuse], [fuse_main_real], [],

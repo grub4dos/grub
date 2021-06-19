@@ -19,25 +19,6 @@ find util -iname '*.in' ! -name Makefile.in  |sort > po/POTFILES-shell.in
 echo "Importing unicode..."
 ${PYTHON} util/import_unicode.py unicode/UnicodeData.txt unicode/BidiMirroring.txt unicode/ArabicShaping.txt grub-core/unidata.c
 
-echo "Importing libgcrypt..."
-${PYTHON} util/import_gcry.py grub-core/lib/libgcrypt/ grub-core
-sed -n -f util/import_gcrypth.sed < grub-core/lib/libgcrypt/src/gcrypt.h.in > include/grub/gcrypt/gcrypt.h
-if [ -f include/grub/gcrypt/g10lib.h ]; then
-    rm include/grub/gcrypt/g10lib.h
-fi
-if [ -d grub-core/lib/libgcrypt-grub/mpi/generic ]; then 
-    rm -rf grub-core/lib/libgcrypt-grub/mpi/generic
-fi
-cp grub-core/lib/libgcrypt-grub/src/g10lib.h include/grub/gcrypt/g10lib.h
-cp -R grub-core/lib/libgcrypt/mpi/generic grub-core/lib/libgcrypt-grub/mpi/generic
-
-for x in mpi-asm-defs.h mpih-add1.c mpih-sub1.c mpih-mul1.c mpih-mul2.c mpih-mul3.c mpih-lshift.c mpih-rshift.c; do
-    if [ -h grub-core/lib/libgcrypt-grub/mpi/"$x" ] || [ -f grub-core/lib/libgcrypt-grub/mpi/"$x" ]; then
-	rm grub-core/lib/libgcrypt-grub/mpi/"$x"
-    fi
-    cp grub-core/lib/libgcrypt-grub/mpi/generic/"$x" grub-core/lib/libgcrypt-grub/mpi/"$x"
-done
-
 echo "Generating Automake input..."
 
 # Automake doesn't like including files from a path outside the project.
@@ -47,8 +28,8 @@ if [ "x${GRUB_CONTRIB}" != x ]; then
   [ "${GRUB_CONTRIB}" = grub-core/contrib ] || ln -s ../contrib grub-core/contrib
 fi
 
-UTIL_DEFS='Makefile.util.def Makefile.utilgcry.def'
-CORE_DEFS='grub-core/Makefile.core.def grub-core/Makefile.gcry.def'
+UTIL_DEFS='Makefile.util.def'
+CORE_DEFS='grub-core/Makefile.core.def'
 
 for extra in contrib/*/Makefile.util.def; do
   if test -e "$extra"; then

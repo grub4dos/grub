@@ -138,8 +138,6 @@ CLEANFILES += widthspec.h
 # Install config.h into platformdir
 nodist_platform_HEADERS = config.h
 
-pkgdata_DATA += grub-mkconfig_lib
-
 
 if COND_real_platform
 
